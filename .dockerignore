@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+instance/
+*.db
+
+# Dev / CI
+.env
+.env.*
+!.env.example
+.git/
+.gitignore
+
+# Frontend (built separately)
+frontend/
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db

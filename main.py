@@ -1,0 +1,632 @@
+import os
+import uuid
+from datetime import datetime, timedelta, timezone
+
+def _now():
+    return datetime.now(timezone.utc)
+from flask import Flask, request, jsonify, send_from_directory
+from flask_jwt_extended import (
+    JWTManager, create_access_token, jwt_required, get_jwt_identity
+)
+from werkzeug.utils import secure_filename
+from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile
+from sms import generate_otp, send_otp_sms
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+
+def _register_cors(app):
+    """Manual CORS — works on all responses including 500s, no third-party dependency quirks."""
+    allowed_env = os.environ.get('ALLOWED_ORIGINS', '*')
+    allowed_list = None if allowed_env.strip() == '*' else [o.strip() for o in allowed_env.split(',') if o.strip()]
+
+    @app.after_request
+    def _add_cors_headers(response):
+        origin = request.headers.get('Origin', '')
+        if allowed_list is None:
+            response.headers['Access-Control-Allow-Origin'] = '*'
+        elif origin in allowed_list:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers.add('Vary', 'Origin')
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Max-Age'] = '600'
+        return response
+
+    @app.route('/api/<path:path>', methods=['OPTIONS'])
+    def _preflight(path):           # noqa: F811
+        return '', 204
+
+    @app.errorhandler(Exception)
+    def _handle_unhandled(e):
+        """Catch-all: convert unhandled exceptions to JSON and add CORS headers.
+        after_request does NOT run when an exception escapes, so we do it here."""
+        import traceback
+        app.logger.error(traceback.format_exc())
+        response = jsonify({'error': 'Internal server error'})
+        response.status_code = 500
+        return response
+
+
+def create_app():
+    app = Flask(__name__)
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'karuneegar-secret-2024')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///karuneegar.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-karuneegar-secret')
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB
+
+    db.init_app(app)
+    JWTManager(app)
+    _register_cors(app)
+
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+    with app.app_context():
+        db.create_all()
+        _seed_forum_categories()
+
+    return app
+
+
+def _seed_forum_categories():
+    if ForumCategory.query.count() == 0:
+        categories = [
+            ForumCategory(name='Business & Trade', description='Discuss business ideas, trade, and entrepreneurship within the community.', icon='briefcase'),
+            ForumCategory(name='Jobs & Careers', description='Job postings, career advice, and professional networking.', icon='person-badge'),
+            ForumCategory(name='Real Estate', description='Buy, sell, or rent properties with community members.', icon='house'),
+            ForumCategory(name='Education', description='Scholarships, colleges, and educational guidance.', icon='book'),
+            ForumCategory(name='General Discussion', description='Community events, news, and general conversations.', icon='chat-dots'),
+        ]
+        db.session.add_all(categories)
+        db.session.commit()
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+app = create_app()
+
+
+# ─── Auth ────────────────────────────────────────────────────────────────────
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = (data.get('username') or '').strip()
+    email    = (data.get('email')    or '').strip().lower()
+    password = (data.get('password') or '')
+    mobile   = (data.get('mobile')   or '').strip()
+    otp_code = (data.get('otp_code') or '').strip()
+
+    if not username or not email or not password or not mobile or not otp_code:
+        return jsonify({'error': 'All fields including mobile OTP are required'}), 400
+    if len(password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already taken'}), 409
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'Email already registered'}), 409
+    if User.query.filter_by(mobile=mobile).first():
+        return jsonify({'error': 'Mobile number already registered'}), 409
+
+    otp_req = (OtpRequest.query
+               .filter_by(mobile=mobile, code=otp_code, used=False)
+               .filter(OtpRequest.expires_at >= _now())
+               .order_by(OtpRequest.created_at.desc())
+               .first())
+    if not otp_req:
+        return jsonify({'error': 'Invalid or expired OTP. Please request a new one.'}), 400
+
+    otp_req.used = True
+    user = User(username=username, email=email, mobile=mobile, mobile_verified=True)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.flush()
+
+    profile = Profile(user_id=user.id, full_name=data.get('full_name', ''))
+    db.session.add(profile)
+    db.session.commit()
+
+    token = create_access_token(identity=str(user.id))
+    return jsonify({'token': token, 'user': user.to_dict()}), 201
+
+
+@app.route('/api/auth/send-otp', methods=['POST'])
+def send_otp_route():
+    data   = request.get_json()
+    mobile = (data.get('mobile') or '').strip()
+
+    if not mobile:
+        return jsonify({'error': 'Mobile number is required'}), 400
+    if not mobile.startswith('+') or len(mobile) < 10:
+        return jsonify({'error': 'Enter number with country code, e.g. +919876543210'}), 400
+
+    cutoff = _now() - timedelta(minutes=10)
+    recent = OtpRequest.query.filter(
+        OtpRequest.mobile == mobile,
+        OtpRequest.created_at >= cutoff
+    ).count()
+    if recent >= 3:
+        return jsonify({'error': 'Too many requests. Please wait 10 minutes.'}), 429
+
+    otp     = generate_otp()
+    expires = _now() + timedelta(minutes=10)
+    req     = OtpRequest(mobile=mobile, code=otp, expires_at=expires)
+    db.session.add(req)
+    db.session.commit()
+
+    if not send_otp_sms(mobile, otp):
+        db.session.delete(req)
+        db.session.commit()
+        return jsonify({'error': 'Failed to send OTP. Check the number and try again.'}), 500
+
+    is_mock = os.environ.get('MOCK_SMS', 'true').lower() == 'true'
+    resp = {'message': 'OTP sent to your mobile number'}
+    if is_mock:
+        resp['dev_otp'] = otp   # visible in dev; never set in production (MOCK_SMS=false)
+    return jsonify(resp)
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    identifier = (data.get('email') or data.get('username') or '').strip()
+    password = data.get('password') or ''
+
+    user = User.query.filter(
+        (User.email == identifier.lower()) | (User.username == identifier)
+    ).first()
+
+    if not user or not user.check_password(password):
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    token = create_access_token(identity=str(user.id))
+    return jsonify({'token': token, 'user': user.to_dict()})
+
+
+@app.route('/api/auth/me', methods=['GET'])
+@jwt_required()
+def me():
+    user = User.query.get(int(get_jwt_identity()))
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({'user': user.to_dict()})
+
+
+# ─── Upload ───────────────────────────────────────────────────────────────────
+
+@app.route('/api/upload', methods=['POST'])
+@jwt_required()
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    file = request.files['file']
+    if file.filename == '' or not allowed_file(file.filename):
+        return jsonify({'error': 'Invalid file type'}), 400
+
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    return jsonify({'filename': filename}), 201
+
+
+@app.route('/api/uploads/<filename>')
+def serve_upload(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+# ─── Profiles ─────────────────────────────────────────────────────────────────
+
+@app.route('/api/profile', methods=['GET'])
+@jwt_required()
+def get_own_profile():
+    user = User.query.get(int(get_jwt_identity()))
+    profile = user.profile or Profile(user_id=user.id)
+    return jsonify({'user': user.to_dict(), 'profile': profile.to_dict()})
+
+
+@app.route('/api/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user = User.query.get(int(get_jwt_identity()))
+    data = request.get_json()
+
+    if not user.profile:
+        user.profile = Profile(user_id=user.id)
+        db.session.add(user.profile)
+
+    fields = ['full_name', 'bio', 'phone', 'location', 'occupation', 'dob',
+              'native_place', 'gothram', 'photo_filename', 'linkedin', 'website', 'is_public']
+    for f in fields:
+        if f in data:
+            setattr(user.profile, f, data[f])
+
+    db.session.commit()
+    return jsonify({'profile': user.profile.to_dict()})
+
+
+@app.route('/api/users/<username>', methods=['GET'])
+def get_user_profile(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    profile = user.profile
+    # Respect privacy: only serve full profile if the user made it public
+    if profile and profile.is_public is False:
+        return jsonify({'user': user.to_dict(), 'profile': {'is_public': False}})
+    return jsonify({'user': user.to_dict(), 'profile': profile.to_dict() if profile else {}})
+
+
+@app.route('/api/members', methods=['GET'])
+def get_members():
+    page   = request.args.get('page', 1, type=int)
+    search = request.args.get('q', '')
+
+    # Only show members who explicitly opted in
+    query = User.query.join(Profile).filter(Profile.is_public == True)  # noqa: E712
+    if search:
+        query = query.filter(
+            Profile.full_name.ilike(f'%{search}%') |
+            User.username.ilike(f'%{search}%') |
+            Profile.native_place.ilike(f'%{search}%') |
+            Profile.occupation.ilike(f'%{search}%')
+        )
+    pagination = query.paginate(page=page, per_page=20, error_out=False)
+    members = [{**u.to_dict(), 'profile': u.profile.to_dict()} for u in pagination.items]
+    return jsonify({'members': members, 'total': pagination.total, 'pages': pagination.pages, 'page': page})
+
+
+# ─── Family Tree ──────────────────────────────────────────────────────────────
+
+@app.route('/api/family-tree', methods=['GET'])
+@jwt_required()
+def get_family_tree():
+    user_id = int(get_jwt_identity())
+    members = FamilyMember.query.filter_by(user_id=user_id).all()
+    return jsonify({'members': [m.to_dict() for m in members]})
+
+
+@app.route('/api/family-tree', methods=['POST'])
+@jwt_required()
+def add_family_member():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+
+    if not data.get('name'):
+        return jsonify({'error': 'Name is required'}), 400
+
+    member = FamilyMember(
+        user_id=user_id,
+        name=data['name'],
+        relation=data.get('relation'),
+        gender=data.get('gender'),
+        birth_year=data.get('birth_year'),
+        death_year=data.get('death_year'),
+        notes=data.get('notes'),
+        parent_id=data.get('parent_id'),
+    )
+    db.session.add(member)
+    db.session.commit()
+    return jsonify({'member': member.to_dict()}), 201
+
+
+@app.route('/api/family-tree/<int:member_id>', methods=['PUT'])
+@jwt_required()
+def update_family_member(member_id):
+    user_id = int(get_jwt_identity())
+    member = FamilyMember.query.filter_by(id=member_id, user_id=user_id).first_or_404()
+    data = request.get_json()
+
+    for f in ['name', 'relation', 'gender', 'birth_year', 'death_year', 'notes', 'parent_id']:
+        if f in data:
+            setattr(member, f, data[f])
+
+    db.session.commit()
+    return jsonify({'member': member.to_dict()})
+
+
+@app.route('/api/family-tree/<int:member_id>', methods=['DELETE'])
+@jwt_required()
+def delete_family_member(member_id):
+    user_id = int(get_jwt_identity())
+    member = FamilyMember.query.filter_by(id=member_id, user_id=user_id).first_or_404()
+    db.session.delete(member)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
+# ─── Forums ───────────────────────────────────────────────────────────────────
+
+@app.route('/api/forums/categories', methods=['GET'])
+def get_forum_categories():
+    categories = ForumCategory.query.all()
+    return jsonify({'categories': [c.to_dict() for c in categories]})
+
+
+@app.route('/api/forums/categories/<int:cat_id>/threads', methods=['GET'])
+def get_threads(cat_id):
+    cat = ForumCategory.query.get_or_404(cat_id)
+    page = request.args.get('page', 1, type=int)
+    pagination = ForumThread.query.filter_by(category_id=cat_id)\
+        .order_by(ForumThread.created_at.desc())\
+        .paginate(page=page, per_page=20, error_out=False)
+    return jsonify({
+        'category': cat.to_dict(),
+        'threads': [t.to_dict() for t in pagination.items],
+        'total': pagination.total,
+        'pages': pagination.pages,
+        'page': page,
+    })
+
+
+@app.route('/api/forums/categories/<int:cat_id>/threads', methods=['POST'])
+@jwt_required()
+def create_thread(cat_id):
+    ForumCategory.query.get_or_404(cat_id)
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+
+    if not data.get('title') or not data.get('body'):
+        return jsonify({'error': 'Title and body are required'}), 400
+
+    thread = ForumThread(
+        category_id=cat_id,
+        user_id=user_id,
+        title=data['title'],
+        body=data['body'],
+    )
+    db.session.add(thread)
+    db.session.commit()
+    return jsonify({'thread': thread.to_dict()}), 201
+
+
+@app.route('/api/forums/threads/<int:thread_id>', methods=['GET'])
+def get_thread(thread_id):
+    thread = ForumThread.query.get_or_404(thread_id)
+    thread.views += 1
+    db.session.commit()
+    return jsonify({'thread': thread.to_dict(include_replies=True)})
+
+
+@app.route('/api/forums/threads/<int:thread_id>/replies', methods=['POST'])
+@jwt_required()
+def post_reply(thread_id):
+    ForumThread.query.get_or_404(thread_id)
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+
+    if not data.get('body'):
+        return jsonify({'error': 'Reply body is required'}), 400
+
+    reply = ForumReply(thread_id=thread_id, user_id=user_id, body=data['body'])
+    db.session.add(reply)
+    db.session.commit()
+    return jsonify({'reply': reply.to_dict()}), 201
+
+
+@app.route('/api/forums/threads/<int:thread_id>', methods=['DELETE'])
+@jwt_required()
+def delete_thread(thread_id):
+    user_id = int(get_jwt_identity())
+    thread = ForumThread.query.get_or_404(thread_id)
+    user = User.query.get(user_id)
+    if thread.user_id != user_id and not user.is_admin:
+        return jsonify({'error': 'Forbidden'}), 403
+    db.session.delete(thread)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
+# ─── Matrimony ────────────────────────────────────────────────────────────────
+
+@app.route('/api/matrimony', methods=['GET'])
+def get_matrimony_profiles():
+    page = request.args.get('page', 1, type=int)
+    gender = request.args.get('gender')
+    native = request.args.get('native_place')
+    gothram = request.args.get('gothram')
+
+    query = MatrimonyProfile.query.filter_by(active=True)
+    if gender:
+        query = query.filter_by(gender=gender)
+    if native:
+        query = query.filter(MatrimonyProfile.native_place.ilike(f'%{native}%'))
+    if gothram:
+        query = query.filter(MatrimonyProfile.gothram.ilike(f'%{gothram}%'))
+
+    pagination = query.order_by(MatrimonyProfile.created_at.desc())\
+        .paginate(page=page, per_page=12, error_out=False)
+
+    return jsonify({
+        'profiles': [p.to_dict() for p in pagination.items],
+        'total': pagination.total,
+        'pages': pagination.pages,
+        'page': page,
+    })
+
+
+@app.route('/api/matrimony', methods=['POST'])
+@jwt_required()
+def create_matrimony_profile():
+    user_id = int(get_jwt_identity())
+
+    if MatrimonyProfile.query.filter_by(user_id=user_id).first():
+        return jsonify({'error': 'You already have a matrimony profile. Please edit it instead.'}), 409
+
+    data = request.get_json()
+    if not data.get('full_name') or not data.get('gender'):
+        return jsonify({'error': 'Full name and gender are required'}), 400
+
+    profile = MatrimonyProfile(user_id=user_id, **{
+        k: data.get(k) for k in [
+            'full_name', 'gender', 'seeking', 'age', 'height',
+            'education', 'occupation', 'salary_range', 'gothram',
+            'native_place', 'star', 'raasi', 'about',
+            'photo_filename', 'contact_email', 'contact_phone',
+        ]
+    })
+    db.session.add(profile)
+    db.session.commit()
+    return jsonify({'profile': profile.to_dict()}), 201
+
+
+@app.route('/api/matrimony/<int:profile_id>', methods=['GET'])
+def get_matrimony_profile(profile_id):
+    profile = MatrimonyProfile.query.get_or_404(profile_id)
+    return jsonify({'profile': profile.to_dict()})
+
+
+@app.route('/api/matrimony/<int:profile_id>', methods=['PUT'])
+@jwt_required()
+def update_matrimony_profile(profile_id):
+    user_id = int(get_jwt_identity())
+    profile = MatrimonyProfile.query.filter_by(id=profile_id, user_id=user_id).first_or_404()
+    data = request.get_json()
+
+    for f in ['full_name', 'gender', 'seeking', 'age', 'height', 'education',
+              'occupation', 'salary_range', 'gothram', 'native_place', 'star',
+              'raasi', 'about', 'photo_filename', 'contact_email', 'contact_phone', 'active']:
+        if f in data:
+            setattr(profile, f, data[f])
+
+    db.session.commit()
+    return jsonify({'profile': profile.to_dict()})
+
+
+@app.route('/api/matrimony/<int:profile_id>', methods=['DELETE'])
+@jwt_required()
+def delete_matrimony_profile(profile_id):
+    user_id = int(get_jwt_identity())
+    profile = MatrimonyProfile.query.filter_by(id=profile_id, user_id=user_id).first_or_404()
+    db.session.delete(profile)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
+@app.route('/api/matrimony/mine', methods=['GET'])
+@jwt_required()
+def get_my_matrimony():
+    user_id = int(get_jwt_identity())
+    profile = MatrimonyProfile.query.filter_by(user_id=user_id).first()
+    if not profile:
+        return jsonify({'profile': None})
+    return jsonify({'profile': profile.to_dict()})
+
+
+# ─── Business Profiles ────────────────────────────────────────────────────────
+
+@app.route('/api/business', methods=['GET'])
+def list_businesses():
+    page     = request.args.get('page', 1, type=int)
+    search   = request.args.get('q', '')
+    category = request.args.get('category', '')
+
+    query = BusinessProfile.query.filter_by(active=True)
+    if search:
+        query = query.filter(
+            BusinessProfile.company_name.ilike(f'%{search}%') |
+            BusinessProfile.description.ilike(f'%{search}%') |
+            BusinessProfile.city.ilike(f'%{search}%')
+        )
+    if category:
+        query = query.filter_by(category=category)
+
+    pagination = query.order_by(BusinessProfile.created_at.desc()) \
+                      .paginate(page=page, per_page=12, error_out=False)
+    return jsonify({
+        'businesses': [b.to_dict() for b in pagination.items],
+        'total': pagination.total,
+        'pages': pagination.pages,
+        'page': page,
+    })
+
+
+@app.route('/api/business/mine', methods=['GET'])
+@jwt_required()
+def get_my_business():
+    user_id = int(get_jwt_identity())
+    bp = BusinessProfile.query.filter_by(user_id=user_id).first()
+    return jsonify({'business': bp.to_dict() if bp else None})
+
+
+@app.route('/api/business', methods=['POST'])
+@jwt_required()
+def create_business():
+    user_id = int(get_jwt_identity())
+    if BusinessProfile.query.filter_by(user_id=user_id).first():
+        return jsonify({'error': 'You already have a business profile. Edit it instead.'}), 409
+
+    data = request.get_json()
+    if not data.get('company_name'):
+        return jsonify({'error': 'Company name is required'}), 400
+
+    bp = BusinessProfile(user_id=user_id, **{
+        k: data.get(k) for k in [
+            'company_name', 'tagline', 'category', 'description',
+            'logo_filename', 'cover_filename', 'address', 'city',
+            'state', 'pincode', 'phone', 'email', 'website',
+            'established_year', 'employees',
+        ]
+    })
+    db.session.add(bp)
+    db.session.commit()
+    return jsonify({'business': bp.to_dict()}), 201
+
+
+@app.route('/api/business/<int:bp_id>', methods=['GET'])
+def get_business(bp_id):
+    bp = BusinessProfile.query.get_or_404(bp_id)
+    return jsonify({'business': bp.to_dict()})
+
+
+@app.route('/api/business/<int:bp_id>', methods=['PUT'])
+@jwt_required()
+def update_business(bp_id):
+    user_id = int(get_jwt_identity())
+    bp = BusinessProfile.query.filter_by(id=bp_id, user_id=user_id).first_or_404()
+    data = request.get_json()
+    for f in ['company_name', 'tagline', 'category', 'description',
+              'logo_filename', 'cover_filename', 'address', 'city',
+              'state', 'pincode', 'phone', 'email', 'website',
+              'established_year', 'employees', 'active']:
+        if f in data:
+            setattr(bp, f, data[f])
+    db.session.commit()
+    return jsonify({'business': bp.to_dict()})
+
+
+@app.route('/api/business/<int:bp_id>', methods=['DELETE'])
+@jwt_required()
+def delete_business(bp_id):
+    user_id = int(get_jwt_identity())
+    bp = BusinessProfile.query.filter_by(id=bp_id, user_id=user_id).first_or_404()
+    db.session.delete(bp)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
+@app.route('/api/users/<username>/business', methods=['GET'])
+def get_user_business(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    bp = BusinessProfile.query.filter_by(user_id=user.id, active=True).first()
+    return jsonify({'business': bp.to_dict() if bp else None})
+
+
+# ─── Stats ────────────────────────────────────────────────────────────────────
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    return jsonify({
+        'members': User.query.count(),
+        'families': FamilyMember.query.distinct(FamilyMember.user_id).count(),
+        'forum_threads': ForumThread.query.count(),
+        'matrimony_profiles': MatrimonyProfile.query.filter_by(active=True).count(),
+    })
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=os.environ.get('FLASK_ENV') != 'production', host='0.0.0.0', port=port)

@@ -1,0 +1,47 @@
+services:
+
+  # ── Flask REST API ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SECRET_KEY:     ${SECRET_KEY:-karuneegar-dev-secret}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-karuneegar-jwt-dev-secret}
+      FLASK_ENV:      ${FLASK_ENV:-production}
+    volumes:
+      - db_data:/app/instance          # SQLite database
+      - uploads:/app/static/uploads    # user-uploaded photos
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/stats')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── React + nginx ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app_net
+
+# ── Named volumes ─────────────────────────────────────────────────────────
+volumes:
+  db_data:
+  uploads:
+
+# ── Internal network ──────────────────────────────────────────────────────
+networks:
+  app_net:
+    driver: bridge

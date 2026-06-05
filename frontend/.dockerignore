@@ -1,0 +1,16 @@
+# Dependencies (installed fresh during build)
+node_modules/
+
+# Output (produced during build)
+dist/
+
+# Dev config (not needed in image)
+.env
+.env.*
+!.env.production
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
