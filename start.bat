@@ -3,7 +3,7 @@ echo Starting Karuneegar Central...
 
 echo.
 echo [1/2] Starting Flask API backend on port 5000...
-start "Flask Backend" cmd /k "cd /d %~dp0 && uv run python main.py"
+start "Flask Backend" cmd /k "cd /d %~dp0backend && uv run python main.py"
 
 timeout /t 2 /nobreak >nul
 

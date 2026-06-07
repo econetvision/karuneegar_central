@@ -8,3 +8,13 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Database
+*.db
+*.sqlite3
+instance/
+backend/instance/
+
+# Secrets
+.env
+.env.local

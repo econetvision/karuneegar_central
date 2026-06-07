@@ -5,13 +5,13 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS base
 WORKDIR /app
 
 # Copy dependency manifests first for layer-cache efficiency
-COPY pyproject.toml uv.lock ./
+COPY backend/pyproject.toml backend/uv.lock ./
 
 # Install dependencies into .venv, skip dev extras
 RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application source
-COPY main.py models.py ./
+COPY backend/main.py backend/models.py backend/sms.py ./
 
 # Ensure uploads directory exists
 RUN mkdir -p static/uploads instance
