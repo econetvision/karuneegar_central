@@ -10,8 +10,8 @@ services:
       SECRET_KEY:     ${SECRET_KEY:-karuneegar-dev-secret}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-karuneegar-jwt-dev-secret}
       FLASK_ENV:      ${FLASK_ENV:-production}
+      DATABASE_URL:   ${DATABASE_URL:-}
     volumes:
-      - db_data:/app/instance          # SQLite database
       - uploads:/app/static/uploads    # user-uploaded photos
     networks:
       - app_net
@@ -38,7 +38,6 @@ services:
 
 # ── Named volumes ─────────────────────────────────────────────────────────
 volumes:
-  db_data:
   uploads:
 
 # ── Internal network ──────────────────────────────────────────────────────

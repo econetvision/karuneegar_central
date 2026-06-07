@@ -14,7 +14,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY backend/main.py backend/models.py backend/sms.py ./
 
 # Ensure uploads directory exists
-RUN mkdir -p static/uploads instance
+RUN mkdir -p static/uploads
 
 # Add .venv to PATH so gunicorn/python are resolved without uv run
 ENV PATH="/app/.venv/bin:$PATH"
