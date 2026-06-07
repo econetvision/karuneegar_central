@@ -68,10 +68,6 @@ def create_app():
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-    with app.app_context():
-        db.create_all()
-        _seed_forum_categories()
-
     return app
 
 

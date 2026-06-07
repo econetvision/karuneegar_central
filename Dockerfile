@@ -11,16 +11,14 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application source
-COPY backend/main.py backend/models.py backend/sms.py ./
+COPY backend/main.py backend/models.py backend/sms.py backend/entrypoint.sh ./
 
-# Ensure uploads directory exists
-RUN mkdir -p static/uploads
+# Ensure uploads directory exists and entrypoint is executable
+RUN mkdir -p static/uploads && chmod +x entrypoint.sh
 
 # Add .venv to PATH so gunicorn/python are resolved without uv run
 ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 5000
 
-# 4 workers, longer timeout for file uploads
-# Railway injects $PORT; fall back to 5000 for Docker Compose / local use
-CMD ["sh", "-c", "gunicorn --workers 4 --bind 0.0.0.0:${PORT:-5000} --timeout 120 --access-logfile - main:app"]
+CMD ["sh", "entrypoint.sh"]
