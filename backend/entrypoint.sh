@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+# Work from the backend directory regardless of where this script is called from
+cd "$(dirname "$0")"
+
 python - <<'EOF'
 from main import app, db, _seed_forum_categories
 with app.app_context():
