@@ -17,6 +17,12 @@ instance/
 # Frontend (built separately)
 frontend/
 
+# Backend artifacts (not needed in image)
+backend/.venv/
+backend/__pycache__/
+backend/instance/
+backend/static/uploads/
+
 # IDE / OS
 .vscode/
 .idea/
