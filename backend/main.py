@@ -616,6 +616,11 @@ def get_user_business(username):
 
 # ─── Stats ────────────────────────────────────────────────────────────────────
 
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'ok'})
+
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     return jsonify({
