@@ -7,3 +7,4 @@ pillow>=12.2.0
 python-dotenv>=1.2.2
 gunicorn>=26.0.0
 psycopg2-binary>=2.9
+twilio>=9.0.0

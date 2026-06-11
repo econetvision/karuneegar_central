@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Phone, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/client';
+import PhoneInput from '../components/PhoneInput';
 
 export default function Register() {
   const { register } = useAuth();
@@ -129,15 +130,11 @@ export default function Register() {
                 <Phone size={13} className="text-saffron-600" /> Mobile Number
               </label>
               <div className="flex gap-2">
-                <input
-                  type="tel"
-                  className="input flex-1"
-                  placeholder="+919876543210"
+                <PhoneInput
                   value={form.mobile}
-                  onChange={(e) => {
-                    set('mobile')(e);
-                    if (otpSent) { setOtpSent(false); setOtpCode(''); }
-                  }}
+                  onChange={(v) => setForm((f) => ({ ...f, mobile: v }))}
+                  onReset={() => { if (otpSent) { setOtpSent(false); setOtpCode(''); } }}
+                  disabled={sendingOtp || loading}
                   required
                 />
                 <button
