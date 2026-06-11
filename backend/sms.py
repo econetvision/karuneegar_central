@@ -31,16 +31,34 @@ def send_otp_sms(mobile: str, otp: str) -> bool:
 
 def _twilio(mobile: str, otp: str) -> bool:
     try:
-        from twilio.rest import Client  # optional dep
-        client = Client(os.environ['TWILIO_ACCOUNT_SID'], os.environ['TWILIO_AUTH_TOKEN'])
+        from twilio.rest import Client
+    except ImportError:
+        logger.error('Twilio package not installed. Run: pip install twilio')
+        return False
+
+    sid   = os.environ.get('TWILIO_ACCOUNT_SID')
+    token = os.environ.get('TWILIO_AUTH_TOKEN')
+    from_ = os.environ.get('TWILIO_FROM')
+    if not sid or not token or not from_:
+        logger.error(
+            'Missing Twilio env vars — TWILIO_ACCOUNT_SID=%s, TWILIO_AUTH_TOKEN=%s, TWILIO_FROM=%s',
+            'set' if sid else 'MISSING',
+            'set' if token else 'MISSING',
+            from_ or 'MISSING',
+        )
+        return False
+
+    try:
+        client = Client(sid, token)
         client.messages.create(
             body=f'Your Karuneegar Central verification code is {otp}. Valid for 10 minutes.',
-            from_=os.environ['TWILIO_FROM'],
+            from_=from_,
             to=mobile,
         )
+        logger.info('Twilio SMS sent to %s', mobile)
         return True
     except Exception as exc:
-        logger.error('Twilio error: %s', exc)
+        logger.error('Twilio API error: %s', exc)
         return False
 
 

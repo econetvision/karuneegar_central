@@ -68,6 +68,10 @@ def create_app():
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,   # reconnect silently after Neon idle-suspend
+        'pool_recycle': 280,     # recycle before Neon's 300 s idle timeout
+    }
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-karuneegar-secret')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -647,12 +651,21 @@ def health_check():
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    return jsonify({
-        'members': User.query.count(),
-        'families': FamilyMember.query.distinct(FamilyMember.user_id).count(),
-        'forum_threads': ForumThread.query.count(),
-        'matrimony_profiles': MatrimonyProfile.query.filter_by(active=True).count(),
-    })
+    from sqlalchemy import func, distinct as sa_distinct
+    try:
+        families = db.session.query(
+            func.count(sa_distinct(FamilyMember.user_id))
+        ).scalar() or 0
+        return jsonify({
+            'members': User.query.count(),
+            'families': families,
+            'forum_threads': ForumThread.query.count(),
+            'matrimony_profiles': MatrimonyProfile.query.filter_by(active=True).count(),
+        })
+    except Exception:
+        import traceback
+        app.logger.error('stats error: %s', traceback.format_exc())
+        return jsonify({'members': 0, 'families': 0, 'forum_threads': 0, 'matrimony_profiles': 0})
 
 
 if __name__ == '__main__':
