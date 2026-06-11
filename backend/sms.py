@@ -67,21 +67,21 @@ def _twilio(mobile: str, otp: str) -> bool:
 
 
 def _twofactor(mobile: str, otp: str) -> bool:
-    """2Factor.in OTP API — simple GET, no website verification needed."""
+    """2Factor.in OTP via VOICE call — bypasses DND, works for all Indian numbers."""
     api_key = os.environ.get('TWOFACTOR_API_KEY')
     if not api_key:
         logger.error('2Factor: TWOFACTOR_API_KEY env var is MISSING')
         return False
 
     number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
-    logger.info('2Factor: sending OTP to number=%s', number)
+    logger.info('2Factor: sending VOICE OTP to number=%s', number)
 
-    url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}'
+    url = f'https://2factor.in/API/V1/{api_key}/VOICE/{number}/{otp}'
     req = urllib.request.Request(url)
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             body = json.loads(resp.read())
-            logger.info('2Factor response: %s', body)
+            logger.info('2Factor VOICE response: %s', body)
             return body.get('Status') == 'Success'
     except urllib.error.HTTPError as exc:
         body = exc.read().decode('utf-8', errors='replace')
