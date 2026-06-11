@@ -65,10 +65,11 @@ def _twilio(mobile: str, otp: str) -> bool:
 def _fast2sms(mobile: str, otp: str) -> bool:
     """Fast2SMS OTP route — good for Indian numbers."""
     try:
+        number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
         payload = json.dumps({
             'route': 'otp',
             'variables_values': otp,
-            'numbers': mobile.lstrip('+91').lstrip('+'),
+            'numbers': number,
         }).encode()
         req = urllib.request.Request(
             'https://www.fast2sms.com/dev/bulkV2',
