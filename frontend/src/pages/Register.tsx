@@ -61,6 +61,11 @@ export default function Register() {
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     setError('');
+    const usernameNorm = form.username.trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,30}$/.test(usernameNorm)) {
+      setError('Username must be 3–30 characters: letters, numbers, and underscore only.');
+      return;
+    }
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
     if (!otpSent || otpCode.length !== 5) { setError('Please verify your mobile number first.'); return; }
     setLoading(true);
@@ -105,8 +110,17 @@ export default function Register() {
             </div>
             <div>
               <label className="label">Username</label>
-              <input type="text" className="input" placeholder="Choose a username"
-                value={form.username} onChange={set('username')} required />
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. ravi_kumar"
+                value={form.username}
+                onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
+                minLength={3}
+                maxLength={30}
+                required
+              />
+              <p className="mt-1 text-xs text-gray-400">3–30 chars · letters, numbers, underscore only</p>
             </div>
             <div>
               <label className="label">Email</label>

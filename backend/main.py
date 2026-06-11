@@ -1,6 +1,14 @@
 import os
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
+
+_USERNAME_RE = re.compile(r'^[a-z0-9_]{3,30}$')
+
+
+def _normalize_mobile(raw: str) -> str:
+    """Strip spaces, dashes, and dots but keep the leading + and digits."""
+    return re.sub(r'[\s\-\.]', '', raw.strip())
 
 def _now():
     return datetime.now(timezone.utc)
@@ -106,22 +114,26 @@ app = create_app()
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     data = request.get_json()
-    username = (data.get('username') or '').strip()
+    username = (data.get('username') or '').strip().lower()
     email    = (data.get('email')    or '').strip().lower()
     password = (data.get('password') or '')
-    mobile   = (data.get('mobile')   or '').strip()
+    mobile   = _normalize_mobile(data.get('mobile') or '')
     otp_code = (data.get('otp_code') or '').strip()
 
     if not username or not email or not password or not mobile or not otp_code:
         return jsonify({'error': 'All fields including mobile OTP are required'}), 400
+    if not _USERNAME_RE.match(username):
+        return jsonify({'error': 'Username must be 3–30 characters: lowercase letters, numbers, and underscore only'}), 400
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    if not mobile.startswith('+') or len(mobile) < 10:
+        return jsonify({'error': 'Invalid mobile number'}), 400
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'Username already taken'}), 409
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already registered'}), 409
     if User.query.filter_by(mobile=mobile).first():
-        return jsonify({'error': 'Mobile number already registered'}), 409
+        return jsonify({'error': 'This mobile number already has an account'}), 409
 
     otp_req = (OtpRequest.query
                .filter_by(mobile=mobile, code=otp_code, used=False)
@@ -148,12 +160,14 @@ def register():
 @app.route('/api/auth/send-otp', methods=['POST'])
 def send_otp_route():
     data   = request.get_json()
-    mobile = (data.get('mobile') or '').strip()
+    mobile = _normalize_mobile(data.get('mobile') or '')
 
     if not mobile:
         return jsonify({'error': 'Mobile number is required'}), 400
     if not mobile.startswith('+') or len(mobile) < 10:
         return jsonify({'error': 'Enter number with country code, e.g. +919876543210'}), 400
+    if User.query.filter_by(mobile=mobile).first():
+        return jsonify({'error': 'This mobile number already has an account. Please login instead.'}), 409
 
     cutoff = _now() - timedelta(minutes=10)
     recent = OtpRequest.query.filter(
