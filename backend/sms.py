@@ -3,6 +3,7 @@ import random
 import logging
 import urllib.request
 import urllib.parse
+import urllib.error
 import json
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,8 @@ def send_otp_sms(mobile: str, otp: str) -> bool:
         print(f'\n{"="*40}\nMOCK SMS  ->  {mobile}\nOTP CODE  ->  {otp}\n{"="*40}\n', flush=True)
         return True
 
-    provider = os.environ.get('SMS_PROVIDER', 'twilio').lower()
+    provider = os.environ.get('SMS_PROVIDER', 'twilio').strip().lower()
+    logger.info('SMS_PROVIDER resolved to: %r', provider)
     if provider == 'twilio':
         return _twilio(mobile, otp)
     if provider == 'fast2sms':
@@ -27,7 +29,7 @@ def send_otp_sms(mobile: str, otp: str) -> bool:
     if provider == 'twofactor':
         return _twofactor(mobile, otp)
 
-    logger.error('Unknown SMS_PROVIDER: %s', provider)
+    logger.error('Unknown SMS_PROVIDER: %r (check Render env var)', provider)
     return False
 
 
