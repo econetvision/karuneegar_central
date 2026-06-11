@@ -17,6 +17,7 @@ export default function Register() {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [devOtp, setDevOtp] = useState('');
+  const [otpVia, setOtpVia] = useState<'sms' | 'email'>('sms');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,6 +31,8 @@ export default function Register() {
     return () => clearTimeout(t);
   }, [countdown]);
 
+  const isIndian = form.mobile.startsWith('+91');
+
   const handleSendOtp = async () => {
     const mobile = form.mobile.trim();
     if (!mobile) { setError('Please enter your mobile number first.'); return; }
@@ -37,15 +40,22 @@ export default function Register() {
       setError('Include country code, e.g. +919876543210');
       return;
     }
+    if (!isIndian && !form.email.trim()) {
+      setError('Please enter your email above — OTP will be sent there for international numbers.');
+      return;
+    }
     setSendingOtp(true);
     setError('');
     try {
-      const r = await api.post('/auth/send-otp', { mobile });
+      const payload: { mobile: string; email?: string } = { mobile };
+      if (!isIndian) payload.email = form.email.trim();
+      const r = await api.post('/auth/send-otp', payload);
       setOtpSent(true);
+      setOtpVia(r.data.via ?? 'sms');
       setCountdown(60);
       if (r.data.dev_otp) {
         setDevOtp(r.data.dev_otp);
-        setOtpCode(r.data.dev_otp);   // auto-fill
+        setOtpCode(r.data.dev_otp);
       } else {
         setOtpCode('');
         setDevOtp('');
@@ -164,11 +174,19 @@ export default function Register() {
                     `${countdown}s`
                   ) : otpSent ? (
                     'Resend'
-                  ) : (
+                  ) : isIndian ? (
                     'Send OTP'
+                  ) : (
+                    'Email OTP'
                   )}
                 </button>
               </div>
+
+              {!isIndian && !otpSent && (
+                <p className="mt-1.5 text-xs text-amber-600">
+                  OTP will be sent to your email address above.
+                </p>
+              )}
 
               {/* OTP input — shown after sending */}
               {otpSent && (
@@ -177,7 +195,7 @@ export default function Register() {
                     {otpCode.length === 5
                       ? <CheckCircle2 size={13} className="text-green-500" />
                       : <span className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 inline-block" />}
-                    Enter the 5-digit code sent to {form.mobile}
+                    Enter the 5-digit code sent to your {otpVia === 'email' ? `email (${form.email})` : `mobile (${form.mobile})`}
                   </label>
                   <input
                     type="text"

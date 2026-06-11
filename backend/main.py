@@ -19,6 +19,7 @@ from flask_jwt_extended import (
 from werkzeug.utils import secure_filename
 from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile
 from sms import generate_otp, send_otp_sms
+from email_otp import send_otp_email
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -170,10 +171,16 @@ def send_otp_route():
         return jsonify({'error': 'Mobile number is required'}), 400
     if not mobile.startswith('+') or len(mobile) < 10:
         return jsonify({'error': 'Enter number with country code, e.g. +919876543210'}), 400
-    if os.environ.get('SMS_PROVIDER', 'twilio').lower() == 'fast2sms' and not mobile.startswith('+91'):
-        return jsonify({'error': 'Only Indian mobile numbers (+91) are supported for registration.'}), 400
     if User.query.filter_by(mobile=mobile).first():
         return jsonify({'error': 'This mobile number already has an account. Please login instead.'}), 409
+
+    is_indian = mobile.startswith('+91')
+
+    # International numbers require email delivery
+    if not is_indian:
+        email = (data.get('email') or '').strip().lower()
+        if not email:
+            return jsonify({'error': 'Email is required for international numbers'}), 400
 
     cutoff = _now() - timedelta(minutes=10)
     recent = OtpRequest.query.filter(
@@ -189,15 +196,22 @@ def send_otp_route():
     db.session.add(req)
     db.session.commit()
 
-    if not send_otp_sms(mobile, otp):
+    if is_indian:
+        ok = send_otp_sms(mobile, otp)
+        channel = 'mobile number'
+    else:
+        ok = send_otp_email(email, otp)
+        channel = f'email {email}'
+
+    if not ok:
         db.session.delete(req)
         db.session.commit()
-        return jsonify({'error': 'Failed to send OTP. Check the number and try again.'}), 500
+        return jsonify({'error': f'Failed to send OTP to {channel}. Please try again.'}), 500
 
     is_mock = os.environ.get('MOCK_SMS', 'true').lower() == 'true'
-    resp = {'message': 'OTP sent to your mobile number'}
+    resp = {'message': f'OTP sent to your {channel}', 'via': 'sms' if is_indian else 'email'}
     if is_mock:
-        resp['dev_otp'] = otp   # visible in dev; never set in production (MOCK_SMS=false)
+        resp['dev_otp'] = otp
     return jsonify(resp)
 
 
