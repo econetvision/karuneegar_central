@@ -64,24 +64,36 @@ def _twilio(mobile: str, otp: str) -> bool:
 
 def _fast2sms(mobile: str, otp: str) -> bool:
     """Fast2SMS OTP route — good for Indian numbers."""
+    api_key = os.environ.get('FAST2SMS_API_KEY')
+    if not api_key:
+        logger.error('Fast2SMS: FAST2SMS_API_KEY env var is MISSING')
+        return False
+
+    number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
+    logger.info('Fast2SMS: sending OTP to number=%s', number)
+
+    payload = json.dumps({
+        'route': 'otp',
+        'variables_values': otp,
+        'numbers': number,
+    }).encode()
+    req = urllib.request.Request(
+        'https://www.fast2sms.com/dev/bulkV2',
+        data=payload,
+        headers={
+            'authorization': api_key,
+            'Content-Type': 'application/json',
+        },
+    )
     try:
-        number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
-        payload = json.dumps({
-            'route': 'otp',
-            'variables_values': otp,
-            'numbers': number,
-        }).encode()
-        req = urllib.request.Request(
-            'https://www.fast2sms.com/dev/bulkV2',
-            data=payload,
-            headers={
-                'authorization': os.environ['FAST2SMS_API_KEY'],
-                'Content-Type': 'application/json',
-            },
-        )
         with urllib.request.urlopen(req, timeout=10) as resp:
             body = json.loads(resp.read())
+            logger.info('Fast2SMS response: %s', body)
             return body.get('return') is True
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode('utf-8', errors='replace')
+        logger.error('Fast2SMS HTTP %s: %s', exc.code, body)
+        return False
     except Exception as exc:
         logger.error('Fast2SMS error: %s', exc)
         return False
