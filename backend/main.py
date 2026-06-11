@@ -42,6 +42,9 @@ def _register_cors(app):
     def _handle_unhandled(e):
         """Catch-all: convert unhandled exceptions to JSON and add CORS headers.
         after_request does NOT run when an exception escapes, so we do it here."""
+        from werkzeug.exceptions import HTTPException
+        if isinstance(e, HTTPException):
+            return e
         import traceback
         app.logger.error(traceback.format_exc())
         response = jsonify({'error': 'Internal server error'})
