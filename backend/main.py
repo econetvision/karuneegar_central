@@ -68,6 +68,13 @@ def create_app():
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+    with app.app_context():
+        try:
+            db.create_all()
+            _seed_forum_categories()
+        except Exception as e:
+            app.logger.warning("DB init skipped: %s", e)
+
     return app
 
 
