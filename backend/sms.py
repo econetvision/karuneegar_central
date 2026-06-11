@@ -76,7 +76,7 @@ def _twofactor(mobile: str, otp: str) -> bool:
     number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
     logger.info('2Factor: sending OTP to number=%s', number)
 
-    url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}/OTP1'
+    url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}'
     req = urllib.request.Request(url)
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
