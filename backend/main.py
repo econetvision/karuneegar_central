@@ -170,6 +170,8 @@ def send_otp_route():
         return jsonify({'error': 'Mobile number is required'}), 400
     if not mobile.startswith('+') or len(mobile) < 10:
         return jsonify({'error': 'Enter number with country code, e.g. +919876543210'}), 400
+    if os.environ.get('SMS_PROVIDER', 'twilio').lower() == 'fast2sms' and not mobile.startswith('+91'):
+        return jsonify({'error': 'Only Indian mobile numbers (+91) are supported for registration.'}), 400
     if User.query.filter_by(mobile=mobile).first():
         return jsonify({'error': 'This mobile number already has an account. Please login instead.'}), 409
 
