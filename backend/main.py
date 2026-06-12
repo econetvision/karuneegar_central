@@ -253,15 +253,26 @@ def upload_file():
     if file.filename == '' or not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file type'}), 400
 
-    ext = file.filename.rsplit('.', 1)[1].lower()
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    try:
+        from PIL import Image
+        img = Image.open(file.stream).convert('RGB')
+        img.thumbnail((900, 1200), Image.LANCZOS)
+        filename = f"{uuid.uuid4().hex}.jpg"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        img.save(filepath, 'JPEG', quality=85, optimize=True)
+    except Exception:
+        return jsonify({'error': 'Invalid or unreadable image file'}), 400
+
     return jsonify({'filename': filename}), 201
 
 
 @app.route('/api/uploads/<filename>')
 def serve_upload(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    response = send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    response.headers['Cache-Control'] = 'private, no-transform, max-age=3600'
+    response.headers['Content-Disposition'] = 'inline'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 # ─── Profiles ─────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, MapPin, GraduationCap, Briefcase, Plus, Search, User } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
+import ProtectedPhoto from '../components/ProtectedPhoto';
 
 interface MatrimonyProfile {
   id: number;
@@ -99,10 +100,10 @@ export default function Matrimony() {
           {filtered.map((p) => (
             <Link key={p.id} to={`/matrimony/${p.id}`} className="card group overflow-hidden">
               {/* Photo */}
-              <div className={`h-44 flex items-center justify-center
+              <div className={`h-52 flex items-center justify-center
                 ${p.gender === 'female' ? 'bg-gradient-to-br from-rose-100 to-pink-100' : 'bg-gradient-to-br from-blue-100 to-indigo-100'}`}>
                 {p.photo_filename ? (
-                  <img
+                  <ProtectedPhoto
                     src={`http://localhost:5000/api/uploads/${p.photo_filename}`}
                     alt={p.full_name}
                     className="w-full h-full object-cover"

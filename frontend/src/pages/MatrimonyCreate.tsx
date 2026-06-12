@@ -81,19 +81,29 @@ export default function MatrimonyCreate() {
         {/* Photo */}
         <div className="card p-6">
           <h2 className="font-semibold text-gray-800 mb-4">Profile Photo</h2>
-          <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-2xl bg-rose-100 border-2 border-rose-200 overflow-hidden flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row items-start gap-5">
+            <div className="w-48 h-64 rounded-2xl bg-rose-100 border-2 border-rose-200 overflow-hidden flex items-center justify-center flex-shrink-0">
               {photoUrl ? (
-                <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+                <img src={photoUrl} alt="Profile preview" className="w-full h-full object-cover" />
               ) : (
-                <User size={30} className="text-rose-400" />
+                <div className="flex flex-col items-center gap-2 text-rose-300">
+                  <User size={48} />
+                  <span className="text-xs">No photo</span>
+                </div>
               )}
             </div>
-            <label className="btn-outline flex items-center gap-2 cursor-pointer">
-              <Upload size={16} />
-              {uploading ? 'Uploading...' : 'Upload Photo'}
-              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
-            </label>
+            <div className="flex flex-col gap-3">
+              <label className="btn-outline flex items-center gap-2 cursor-pointer self-start">
+                <Upload size={16} />
+                {uploading ? 'Uploading...' : photoUrl ? 'Change Photo' : 'Upload Photo'}
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+              </label>
+              <p className="text-xs text-gray-400 leading-relaxed max-w-xs">
+                Upload a clear, recent photo. Recommended portrait orientation.<br />
+                Photo will be resized to medium quality automatically.<br />
+                Only you can change or remove your photo.
+              </p>
+            </div>
           </div>
         </div>
 

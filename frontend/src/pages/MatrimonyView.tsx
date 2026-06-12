@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, MapPin, GraduationCap, Briefcase, Phone, Mail, Star, User, Lock } from 'lucide-react';
 import api from '../api/client';
+import ProtectedPhoto from '../components/ProtectedPhoto';
 
 interface Profile {
   id: number;
@@ -61,12 +62,12 @@ export default function MatrimonyView() {
         {/* Left */}
         <div className="space-y-5">
           <div className={`card overflow-hidden`}>
-            <div className={`h-64 flex items-center justify-center
+            <div className={`aspect-[3/4] flex items-center justify-center
               ${isFemale ? 'bg-gradient-to-br from-rose-100 to-pink-100' : 'bg-gradient-to-br from-blue-100 to-indigo-100'}`}>
               {photoUrl ? (
-                <img src={photoUrl} alt={profile.full_name} className="w-full h-full object-cover" />
+                <ProtectedPhoto src={photoUrl} alt={profile.full_name} className="w-full h-full object-cover" />
               ) : (
-                <User size={60} className={isFemale ? 'text-rose-300' : 'text-blue-300'} />
+                <User size={80} className={isFemale ? 'text-rose-300' : 'text-blue-300'} />
               )}
             </div>
             <div className="p-5">
