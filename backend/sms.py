@@ -8,32 +8,44 @@ import json
 
 logger = logging.getLogger(__name__)
 
+OTP_MESSAGE = 'Your Karuneegar Central verification code is {otp}. Valid for 10 minutes.'
+
 
 def generate_otp() -> str:
     return str(secrets.randbelow(90000) + 10000)
 
 
 def send_otp_sms(mobile: str, otp: str) -> bool:
-    """Send OTP via configured provider. Returns True on success."""
+    """Send OTP via SMS. If SMS fails, fall back to WhatsApp."""
     if os.environ.get('MOCK_SMS', 'false').lower() == 'true':
         logger.warning('MOCK SMS | mobile=%s otp=<redacted>', mobile)
         print(f'\n{"="*40}\nMOCK SMS  ->  {mobile}\nOTP CODE  ->  {otp}\n{"="*40}\n', flush=True)
         return True
 
+    sms_ok = _send_sms(mobile, otp)
+    if sms_ok:
+        return True
+
+    logger.warning('SMS delivery failed for %s — trying WhatsApp fallback', mobile)
+    return _send_whatsapp(mobile, otp)
+
+
+# ── SMS delivery ──────────────────────────────────────────────────────────────
+
+def _send_sms(mobile: str, otp: str) -> bool:
     provider = os.environ.get('SMS_PROVIDER', 'twilio').strip().lower()
-    logger.info('SMS_PROVIDER resolved to: %r', provider)
+    logger.info('SMS_PROVIDER=%r  mobile=%s', provider, mobile)
     if provider == 'twilio':
-        return _twilio(mobile, otp)
+        return _twilio_sms(mobile, otp)
     if provider == 'fast2sms':
         return _fast2sms(mobile, otp)
     if provider == 'twofactor':
-        return _twofactor(mobile, otp)
-
-    logger.error('Unknown SMS_PROVIDER: %r (check Render env var)', provider)
+        return _twofactor_sms(mobile, otp)
+    logger.error('Unknown SMS_PROVIDER: %r (check env var)', provider)
     return False
 
 
-def _twilio(mobile: str, otp: str) -> bool:
+def _twilio_sms(mobile: str, otp: str) -> bool:
     try:
         from twilio.rest import Client
     except ImportError:
@@ -55,40 +67,42 @@ def _twilio(mobile: str, otp: str) -> bool:
     try:
         client = Client(sid, token)
         client.messages.create(
-            body=f'Your Karuneegar Central verification code is {otp}. Valid for 10 minutes.',
+            body=OTP_MESSAGE.format(otp=otp),
             from_=from_,
             to=mobile,
         )
         logger.info('Twilio SMS sent to %s', mobile)
         return True
     except Exception as exc:
-        logger.error('Twilio API error: %s', exc)
+        logger.error('Twilio SMS error: %s', exc)
         return False
 
 
-def _twofactor(mobile: str, otp: str) -> bool:
-    """2Factor.in OTP via VOICE call — bypasses DND, works for all Indian numbers."""
+def _twofactor_sms(mobile: str, otp: str) -> bool:
+    """2Factor.in transactional SMS OTP."""
     api_key = os.environ.get('TWOFACTOR_API_KEY')
     if not api_key:
         logger.error('2Factor: TWOFACTOR_API_KEY env var is MISSING')
         return False
 
     number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
-    logger.info('2Factor: sending VOICE OTP to number=%s', number)
+    template = os.environ.get('TWOFACTOR_SMS_TEMPLATE', 'otp1')
+    url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}/{template}'
+    logger.info('2Factor SMS: number=%s template=%s', number, template)
 
-    url = f'https://2factor.in/API/V1/{api_key}/VOICE/{number}/{otp}'
-    req = urllib.request.Request(url)
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(urllib.request.Request(url), timeout=10) as resp:
             body = json.loads(resp.read())
-            logger.info('2Factor VOICE response: %s', body)
-            return body.get('Status') == 'Success'
+            logger.info('2Factor SMS response: %s', body)
+            if body.get('Status') == 'Success':
+                return True
+            logger.error('2Factor SMS non-success: %s', body)
+            return False
     except urllib.error.HTTPError as exc:
-        body = exc.read().decode('utf-8', errors='replace')
-        logger.error('2Factor HTTP %s: %s', exc.code, body)
+        logger.error('2Factor SMS HTTP %s: %s', exc.code, exc.read().decode('utf-8', errors='replace'))
         return False
     except Exception as exc:
-        logger.error('2Factor error: %s', exc)
+        logger.error('2Factor SMS error: %s', exc)
         return False
 
 
@@ -100,7 +114,7 @@ def _fast2sms(mobile: str, otp: str) -> bool:
         return False
 
     number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
-    logger.info('Fast2SMS: sending OTP to number=%s', number)
+    logger.info('Fast2SMS SMS: number=%s', number)
 
     payload = json.dumps({
         'route': 'otp',
@@ -118,12 +132,123 @@ def _fast2sms(mobile: str, otp: str) -> bool:
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             body = json.loads(resp.read())
-            logger.info('Fast2SMS response: %s', body)
+            logger.info('Fast2SMS SMS response: %s', body)
             return body.get('return') is True
     except urllib.error.HTTPError as exc:
-        body = exc.read().decode('utf-8', errors='replace')
-        logger.error('Fast2SMS HTTP %s: %s', exc.code, body)
+        logger.error('Fast2SMS HTTP %s: %s', exc.code, exc.read().decode('utf-8', errors='replace'))
         return False
     except Exception as exc:
-        logger.error('Fast2SMS error: %s', exc)
+        logger.error('Fast2SMS SMS error: %s', exc)
+        return False
+
+
+# ── WhatsApp fallback ─────────────────────────────────────────────────────────
+
+def _send_whatsapp(mobile: str, otp: str) -> bool:
+    """Try WhatsApp providers in order of availability."""
+    if os.environ.get('TWOFACTOR_API_KEY'):
+        if _twofactor_whatsapp(mobile, otp):
+            return True
+
+    if os.environ.get('TWILIO_ACCOUNT_SID') and os.environ.get('TWILIO_WHATSAPP_FROM'):
+        if _twilio_whatsapp(mobile, otp):
+            return True
+
+    if os.environ.get('FAST2SMS_API_KEY'):
+        if _fast2sms_whatsapp(mobile, otp):
+            return True
+
+    logger.error('All WhatsApp fallback providers failed for %s', mobile)
+    return False
+
+
+def _twofactor_whatsapp(mobile: str, otp: str) -> bool:
+    """2Factor.in WhatsApp OTP delivery."""
+    api_key = os.environ.get('TWOFACTOR_API_KEY')
+    if not api_key:
+        return False
+
+    number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
+    template = os.environ.get('TWOFACTOR_WHATSAPP_TEMPLATE', 'otp1')
+    url = f'https://2factor.in/API/V1/{api_key}/WHATSAPP/{template}/{number}/{otp}'
+    logger.info('2Factor WhatsApp: number=%s template=%s', number, template)
+
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url), timeout=10) as resp:
+            body = json.loads(resp.read())
+            logger.info('2Factor WhatsApp response: %s', body)
+            if body.get('Status') == 'Success':
+                return True
+            logger.warning('2Factor WhatsApp non-success: %s', body)
+            return False
+    except urllib.error.HTTPError as exc:
+        logger.warning('2Factor WhatsApp HTTP %s: %s', exc.code, exc.read().decode('utf-8', errors='replace'))
+        return False
+    except Exception as exc:
+        logger.warning('2Factor WhatsApp error: %s', exc)
+        return False
+
+
+def _twilio_whatsapp(mobile: str, otp: str) -> bool:
+    """Twilio WhatsApp OTP delivery. Requires TWILIO_WHATSAPP_FROM env var
+    (e.g. 'whatsapp:+14155238886' for sandbox or your approved WA business number)."""
+    try:
+        from twilio.rest import Client
+    except ImportError:
+        logger.warning('Twilio package not installed — WhatsApp fallback skipped')
+        return False
+
+    sid       = os.environ.get('TWILIO_ACCOUNT_SID')
+    token     = os.environ.get('TWILIO_AUTH_TOKEN')
+    from_     = os.environ.get('TWILIO_WHATSAPP_FROM')  # e.g. whatsapp:+14155238886
+    if not sid or not token or not from_:
+        return False
+
+    to = f'whatsapp:{mobile}' if not mobile.startswith('whatsapp:') else mobile
+    try:
+        client = Client(sid, token)
+        client.messages.create(
+            body=OTP_MESSAGE.format(otp=otp),
+            from_=from_,
+            to=to,
+        )
+        logger.info('Twilio WhatsApp sent to %s', mobile)
+        return True
+    except Exception as exc:
+        logger.warning('Twilio WhatsApp error: %s', exc)
+        return False
+
+
+def _fast2sms_whatsapp(mobile: str, otp: str) -> bool:
+    """Fast2SMS WhatsApp OTP delivery."""
+    api_key = os.environ.get('FAST2SMS_API_KEY')
+    if not api_key:
+        return False
+
+    number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
+    logger.info('Fast2SMS WhatsApp: number=%s', number)
+
+    payload = json.dumps({
+        'route': 'whatsapp',
+        'message': OTP_MESSAGE.format(otp=otp),
+        'numbers': number,
+    }).encode()
+    req = urllib.request.Request(
+        'https://www.fast2sms.com/dev/bulkV2',
+        data=payload,
+        headers={
+            'authorization': api_key,
+            'Content-Type': 'application/json',
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            body = json.loads(resp.read())
+            logger.info('Fast2SMS WhatsApp response: %s', body)
+            return body.get('return') is True
+    except urllib.error.HTTPError as exc:
+        logger.warning('Fast2SMS WhatsApp HTTP %s: %s', exc.code, exc.read().decode('utf-8', errors='replace'))
+        return False
+    except Exception as exc:
+        logger.warning('Fast2SMS WhatsApp error: %s', exc)
         return False
