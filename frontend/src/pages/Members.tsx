@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Users, MapPin, Briefcase, User } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 
 interface Member {
   id: number;
@@ -70,7 +70,7 @@ export default function Members() {
               <div className="w-16 h-16 rounded-2xl bg-saffron-100 mx-auto mb-3 flex items-center justify-center overflow-hidden">
                 {m.profile?.photo_filename ? (
                   <img
-                    src={`http://localhost:5000/api/uploads/${m.profile.photo_filename}`}
+                    src={uploadUrl(m.profile.photo_filename)}
                     alt={m.profile.full_name || m.username}
                     className="w-full h-full object-cover"
                   />

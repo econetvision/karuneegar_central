@@ -1,5 +1,5 @@
 import os
-import random
+import secrets
 import logging
 import urllib.request
 import urllib.parse
@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 def generate_otp() -> str:
-    return str(random.randint(10000, 99999))
+    return str(secrets.randbelow(90000) + 10000)
 
 
 def send_otp_sms(mobile: str, otp: str) -> bool:
     """Send OTP via configured provider. Returns True on success."""
-    if os.environ.get('MOCK_SMS', 'true').lower() == 'true':
-        logger.warning('MOCK SMS | mobile=%s otp=%s', mobile, otp)
+    if os.environ.get('MOCK_SMS', 'false').lower() == 'true':
+        logger.warning('MOCK SMS | mobile=%s otp=<redacted>', mobile)
         print(f'\n{"="*40}\nMOCK SMS  ->  {mobile}\nOTP CODE  ->  {otp}\n{"="*40}\n', flush=True)
         return True
 

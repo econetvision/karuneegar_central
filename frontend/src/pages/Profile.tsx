@@ -4,7 +4,7 @@ import {
   MapPin, Briefcase, Calendar, Phone, ExternalLink,
   Edit2, User, Building2, PlusCircle, ArrowRight, Globe, Lock,
 } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import VisibilityPrompt from '../components/VisibilityPrompt';
 
@@ -97,9 +97,7 @@ export default function Profile() {
   }
 
   const displayName = profile?.full_name || userData?.username || 'Community Member';
-  const photoUrl = profile?.photo_filename
-    ? `http://localhost:5000/api/uploads/${profile.photo_filename}`
-    : null;
+  const photoUrl = profile?.photo_filename ? uploadUrl(profile.photo_filename) : null;
   const isBizOccupation = BUSINESS_OCCUPATIONS.includes(profile?.occupation || '');
 
   return (
@@ -233,7 +231,7 @@ export default function Profile() {
                     <div className="w-14 h-14 rounded-xl bg-saffron-50 border border-saffron-100 overflow-hidden flex items-center justify-center flex-shrink-0">
                       {business.logo_filename ? (
                         <img
-                          src={`http://localhost:5000/api/uploads/${business.logo_filename}`}
+                          src={uploadUrl(business.logo_filename)}
                           alt={business.company_name}
                           className="w-full h-full object-contain p-1"
                         />

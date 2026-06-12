@@ -41,16 +41,18 @@ class User(db.Model):
 
     def to_dict(self, full: bool = False):
         show = full or self.mobile_public
-        return {
+        d = {
             'id': self.id,
             'username': self.username,
-            'email': self.email,
             'mobile': self.mobile if show else _mask_mobile(self.mobile),
             'mobile_public': self.mobile_public,
             'mobile_verified': self.mobile_verified,
             'created_at': self.created_at.isoformat(),
             'is_admin': self.is_admin,
         }
+        if full:
+            d['email'] = self.email
+        return d
 
 
 class Profile(db.Model):
@@ -203,8 +205,9 @@ class MatrimonyProfile(db.Model):
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def to_dict(self, full: bool = False):
+    def to_dict(self, full: bool = False, show_contact: bool = False):
         show_phone = full or self.phone_public
+        show_email = full or show_contact
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -222,7 +225,7 @@ class MatrimonyProfile(db.Model):
             'raasi': self.raasi,
             'about': self.about,
             'photo_filename': self.photo_filename,
-            'contact_email': self.contact_email,
+            'contact_email': self.contact_email if show_email else None,
             'contact_phone': self.contact_phone if show_phone else _mask_mobile(self.contact_phone),
             'phone_public': self.phone_public,
             'active': self.active,

@@ -4,7 +4,7 @@ import {
   ChevronLeft, MapPin, Phone, Mail, Globe, Building2,
   Calendar, Users, Edit2, Tag, Camera, CheckCircle2,
 } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Business {
@@ -85,12 +85,8 @@ export default function BusinessProfileView() {
   if (!business) return <div className="text-center py-20 text-gray-500">Business not found.</div>;
 
   const isOwn = user?.id === business.user_id;
-  const currentLogoUrl = logoFilename
-    ? `http://localhost:5000/api/uploads/${logoFilename}`
-    : null;
-  const coverUrl = business.cover_filename
-    ? `http://localhost:5000/api/uploads/${business.cover_filename}`
-    : null;
+  const currentLogoUrl = logoFilename ? uploadUrl(logoFilename) : null;
+  const coverUrl = business.cover_filename ? uploadUrl(business.cover_filename) : null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">

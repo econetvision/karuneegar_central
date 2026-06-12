@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, MapPin, GraduationCap, Briefcase, Phone, Mail, Star, User, Lock } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 import ProtectedPhoto from '../components/ProtectedPhoto';
 
 interface Profile {
@@ -47,7 +47,7 @@ export default function MatrimonyView() {
   if (!profile) return <div className="text-center py-20 text-gray-500">Profile not found.</div>;
 
   const photoUrl = profile.photo_filename
-    ? `http://localhost:5000/api/uploads/${profile.photo_filename}`
+    ? uploadUrl(profile.photo_filename)
     : null;
 
   const isFemale = profile.gender === 'female';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MapPin, GraduationCap, Briefcase, Plus, Search, User } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPhoto from '../components/ProtectedPhoto';
 
@@ -104,7 +104,7 @@ export default function Matrimony() {
                 ${p.gender === 'female' ? 'bg-gradient-to-br from-rose-100 to-pink-100' : 'bg-gradient-to-br from-blue-100 to-indigo-100'}`}>
                 {p.photo_filename ? (
                   <ProtectedPhoto
-                    src={`http://localhost:5000/api/uploads/${p.photo_filename}`}
+                    src={uploadUrl(p.photo_filename)}
                     alt={p.full_name}
                     className="w-full h-full object-cover"
                   />

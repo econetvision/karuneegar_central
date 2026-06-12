@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, User, Globe, Lock } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function EditProfile() {
@@ -76,7 +76,7 @@ export default function EditProfile() {
     }
   };
 
-  const photoUrl = photoFilename ? `http://localhost:5000/api/uploads/${photoFilename}` : null;
+  const photoUrl = photoFilename ? uploadUrl(photoFilename) : null;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">

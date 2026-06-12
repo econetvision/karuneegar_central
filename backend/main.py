@@ -14,12 +14,16 @@ def _now():
     return datetime.now(timezone.utc)
 from flask import Flask, request, jsonify, send_from_directory
 from flask_jwt_extended import (
-    JWTManager, create_access_token, jwt_required, get_jwt_identity
+    JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 )
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile
 from sms import generate_otp, send_otp_sms
 from email_otp import send_otp_email
+
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -27,15 +31,13 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def _register_cors(app):
     """Manual CORS — works on all responses including 500s, no third-party dependency quirks."""
-    allowed_env = os.environ.get('ALLOWED_ORIGINS', '*')
-    allowed_list = None if allowed_env.strip() == '*' else [o.strip() for o in allowed_env.split(',') if o.strip()]
+    allowed_env = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:3000')
+    allowed_list = [o.strip() for o in allowed_env.split(',') if o.strip()]
 
     @app.after_request
     def _add_cors_headers(response):
         origin = request.headers.get('Origin', '')
-        if allowed_list is None:
-            response.headers['Access-Control-Allow-Origin'] = '*'
-        elif origin in allowed_list:
+        if origin in allowed_list:
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers.add('Vary', 'Origin')
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
@@ -63,7 +65,14 @@ def _register_cors(app):
 
 def create_app():
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'karuneegar-secret-2024')
+    secret_key = os.environ.get('SECRET_KEY')
+    jwt_secret  = os.environ.get('JWT_SECRET_KEY')
+    if not secret_key or not jwt_secret:
+        raise RuntimeError(
+            'SECRET_KEY and JWT_SECRET_KEY environment variables must be set. '
+            'Generate them with: python -c "import secrets; print(secrets.token_hex(32))"'
+        )
+    app.config['SECRET_KEY'] = secret_key
     database_url = os.environ.get('DATABASE_URL', 'sqlite:///karuneegar.db')
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
@@ -73,7 +82,7 @@ def create_app():
         'pool_pre_ping': True,   # reconnect silently after Neon idle-suspend
         'pool_recycle': 280,     # recycle before Neon's 300 s idle timeout
     }
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-karuneegar-secret')
+    app.config['JWT_SECRET_KEY'] = jwt_secret
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB
@@ -81,6 +90,7 @@ def create_app():
     db.init_app(app)
     JWTManager(app)
     _register_cors(app)
+    limiter.init_app(app)
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -117,6 +127,7 @@ app = create_app()
 # ─── Auth ────────────────────────────────────────────────────────────────────
 
 @app.route('/api/auth/register', methods=['POST'])
+@limiter.limit("10 per 10 minutes")
 def register():
     data = request.get_json()
     username = (data.get('username') or '').strip().lower()
@@ -164,6 +175,7 @@ def register():
 
 
 @app.route('/api/auth/send-otp', methods=['POST'])
+@limiter.limit("5 per 5 minutes")
 def send_otp_route():
     data   = request.get_json()
     mobile = _normalize_mobile(data.get('mobile') or '')
@@ -209,14 +221,12 @@ def send_otp_route():
         db.session.commit()
         return jsonify({'error': f'Failed to send OTP to {channel}. Please try again.'}), 500
 
-    is_mock = os.environ.get('MOCK_SMS', 'true').lower() == 'true'
     resp = {'message': f'OTP sent to your {channel}', 'via': 'sms' if is_indian else 'email'}
-    if is_mock:
-        resp['dev_otp'] = otp
     return jsonify(resp)
 
 
 @app.route('/api/auth/login', methods=['POST'])
+@limiter.limit("10 per minute")
 def login():
     data = request.get_json()
     identifier = (data.get('email') or data.get('username') or '').strip()
@@ -542,9 +552,11 @@ def create_matrimony_profile():
 
 
 @app.route('/api/matrimony/<int:profile_id>', methods=['GET'])
+@jwt_required(optional=True)
 def get_matrimony_profile(profile_id):
     profile = MatrimonyProfile.query.get_or_404(profile_id)
-    return jsonify({'profile': profile.to_dict()})
+    logged_in = get_jwt_identity() is not None
+    return jsonify({'profile': profile.to_dict(show_contact=logged_in)})
 
 
 @app.route('/api/matrimony/<int:profile_id>', methods=['PUT'])

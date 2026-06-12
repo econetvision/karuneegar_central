@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, User, Globe, Lock } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 
 type FieldEl = ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
 
@@ -55,7 +55,7 @@ export default function MatrimonyCreate() {
     }
   };
 
-  const photoUrl = photoFilename ? `http://localhost:5000/api/uploads/${photoFilename}` : null;
+  const photoUrl = photoFilename ? uploadUrl(photoFilename) : null;
 
   const STARS = [
     'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 'Ardra',

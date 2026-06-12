@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Building2 } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 
 const CATEGORIES = [
   'Agriculture & Farming', 'Automotive', 'Construction & Real Estate',
@@ -98,8 +98,8 @@ export default function EditBusiness() {
     }
   };
 
-  const logoUrl  = logoFilename  ? `http://localhost:5000/api/uploads/${logoFilename}`  : null;
-  const coverUrl = coverFilename ? `http://localhost:5000/api/uploads/${coverFilename}` : null;
+  const logoUrl  = logoFilename  ? uploadUrl(logoFilename)  : null;
+  const coverUrl = coverFilename ? uploadUrl(coverFilename) : null;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">

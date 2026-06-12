@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Search, MapPin, Tag, Users, ArrowRight } from 'lucide-react';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 
 interface Business {
   id: number;
@@ -91,7 +91,7 @@ export default function Businesses() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {businesses.map((b) => {
             const logoUrl = b.logo_filename
-              ? `http://localhost:5000/api/uploads/${b.logo_filename}`
+              ? uploadUrl(b.logo_filename)
               : null;
             return (
               <Link key={b.id} to={`/business/${b.id}`} className="card p-5 group flex gap-4">
