@@ -111,6 +111,7 @@ def create_app():
             db.create_all()
             _seed_forum_categories()
             _migrate_scholarship_columns()
+            _migrate_member_id()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -128,6 +129,29 @@ def _seed_forum_categories():
         ]
         db.session.add_all(categories)
         db.session.commit()
+
+
+def _migrate_member_id():
+    """Add member_id column and backfill all existing users idempotently."""
+    from sqlalchemy import text
+    with db.engine.connect() as conn:
+        # Add column if missing
+        try:
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN member_id VARCHAR(20)'))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        # Backfill users that have no member_id yet
+        try:
+            rows = conn.execute(text('SELECT id FROM "user" WHERE member_id IS NULL ORDER BY id')).fetchall()
+            for (uid,) in rows:
+                mid = f'KAR-{uid:05d}'
+                conn.execute(text('UPDATE "user" SET member_id = :mid WHERE id = :uid'), {'mid': mid, 'uid': uid})
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            import logging
+            logging.getLogger(__name__).warning('member_id backfill failed: %s', exc)
 
 
 def _migrate_scholarship_columns():
@@ -200,8 +224,9 @@ def register():
     user = User(username=username, email=email, mobile=mobile, mobile_verified=True, mobile_public=mobile_public)
     user.set_password(password)
     db.session.add(user)
-    db.session.flush()
+    db.session.flush()  # populates user.id
 
+    user.member_id = f'KAR-{user.id:05d}'
     profile = Profile(user_id=user.id, full_name=data.get('full_name', ''))
     db.session.add(profile)
     db.session.commit()

@@ -6,6 +6,7 @@ interface User {
   id: number;
   username: string;
   email: string;
+  member_id: string | null;
   is_admin: boolean;
   mobile: string | null;
   mobile_public: boolean;

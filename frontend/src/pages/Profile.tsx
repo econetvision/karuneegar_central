@@ -140,6 +140,11 @@ export default function Profile() {
             <div className="mb-3">
               <h1 className="font-display font-bold text-xl sm:text-2xl text-gray-900 break-words leading-snug pr-20">
                 {displayName}
+                {userData?.member_id && (
+                  <span className="ml-2 text-base sm:text-lg font-normal text-saffron-600">
+                    ({userData.member_id})
+                  </span>
+                )}
               </h1>
               <div className="flex items-center flex-wrap gap-2 mt-1">
                 <p className="text-gray-500 text-sm">@{userData?.username}</p>

@@ -23,6 +23,7 @@ class User(db.Model):
     mobile = db.Column(db.String(20), unique=True, nullable=True)
     mobile_verified = db.Column(db.Boolean, default=False)
     mobile_public = db.Column(db.Boolean, default=False)
+    member_id = db.Column(db.String(20), unique=True, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_admin = db.Column(db.Boolean, default=False)
 
@@ -44,6 +45,7 @@ class User(db.Model):
         d = {
             'id': self.id,
             'username': self.username,
+            'member_id': self.member_id,
             'mobile': self.mobile if show else _mask_mobile(self.mobile),
             'mobile_public': self.mobile_public,
             'mobile_verified': self.mobile_verified,
