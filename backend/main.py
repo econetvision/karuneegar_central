@@ -36,6 +36,8 @@ def _register_cors(app):
         'http://localhost:5173',
         'http://localhost:3000',
         'https://karuneegar-central.vercel.app',
+        'https://karuneegar-central.org',
+        'https://www.karuneegar-central.org',
     }
     # Merge env var additions (if any) with the always-allowed set.
     extra = os.environ.get('ALLOWED_ORIGINS', '')
