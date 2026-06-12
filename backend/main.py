@@ -31,13 +31,19 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def _register_cors(app):
     """Manual CORS — works on all responses including 500s, no third-party dependency quirks."""
-    _DEFAULT_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://karuneegar-central.vercel.app'
-    allowed_env = os.environ.get('ALLOWED_ORIGINS', _DEFAULT_ORIGINS)
-    allowed_list = [o.strip().rstrip('/') for o in allowed_env.split(',') if o.strip()]
+    # Hard-coded production origins that are ALWAYS allowed regardless of env var.
+    _ALWAYS_ALLOWED = {
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'https://karuneegar-central.vercel.app',
+    }
+    # Merge env var additions (if any) with the always-allowed set.
+    extra = os.environ.get('ALLOWED_ORIGINS', '')
+    allowed_set = _ALWAYS_ALLOWED | {o.strip().rstrip('/') for o in extra.split(',') if o.strip()}
 
     def _apply_cors(response):
         origin = request.headers.get('Origin', '').rstrip('/')
-        if origin in allowed_list:
+        if origin in allowed_set:
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers.add('Vary', 'Origin')
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
