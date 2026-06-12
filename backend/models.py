@@ -305,6 +305,17 @@ class Scholarship(db.Model):
     eligibility = db.Column(db.Text)
     deadline = db.Column(db.String(50))
     contact_email = db.Column(db.String(120))
+    # request-specific fields
+    applicant_name = db.Column(db.String(200))
+    parent_name = db.Column(db.String(200))
+    parent_occupation = db.Column(db.String(200))
+    parent_income = db.Column(db.String(100))
+    id_proof_filename = db.Column(db.String(200))
+    certificate_filename = db.Column(db.String(200))
+    admission_letter_filename = db.Column(db.String(200))
+    # provide-specific fields
+    trust_name = db.Column(db.String(200))
+    member_id = db.Column(db.String(100))
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user = db.relationship('User', backref='scholarships')
@@ -324,6 +335,15 @@ class Scholarship(db.Model):
             'eligibility': self.eligibility,
             'deadline': self.deadline,
             'contact_email': self.contact_email,
+            'applicant_name': self.applicant_name,
+            'parent_name': self.parent_name,
+            'parent_occupation': self.parent_occupation,
+            'parent_income': self.parent_income,
+            'id_proof_filename': self.id_proof_filename,
+            'certificate_filename': self.certificate_filename,
+            'admission_letter_filename': self.admission_letter_filename,
+            'trust_name': self.trust_name,
+            'member_id': self.member_id,
             'active': self.active,
             'created_at': self.created_at.isoformat(),
         }

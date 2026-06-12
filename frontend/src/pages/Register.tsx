@@ -22,6 +22,7 @@ export default function Register() {
   const [devOtp, setDevOtp] = useState('');
   const [otpVia, setOtpVia] = useState<'sms' | 'email'>('sms');
   const [error, setError] = useState('');
+  const [mobileConflict, setMobileConflict] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -49,6 +50,7 @@ export default function Register() {
     }
     setSendingOtp(true);
     setError('');
+    setMobileConflict(false);
     try {
       const payload: { mobile: string; email?: string } = { mobile };
       if (!isIndian) payload.email = form.email.trim();
@@ -64,8 +66,12 @@ export default function Register() {
         setDevOtp('');
       }
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg || 'Failed to send OTP. Try again.');
+      const response = (err as { response?: { status?: number; data?: { error?: string } } })?.response;
+      if (response?.status === 409) {
+        setMobileConflict(true);
+      } else {
+        setError(response?.data?.error || 'Failed to send OTP. Try again.');
+      }
     } finally {
       setSendingOtp(false);
     }
@@ -108,6 +114,13 @@ export default function Register() {
         </div>
 
         <div className="card p-8">
+          {mobileConflict && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+              <p className="text-amber-800 font-medium mb-2">This number is already registered.</p>
+              <p className="text-amber-700 mb-3">An account already exists for this mobile number. Please log in instead.</p>
+              <Link to="/login" className="btn-primary text-sm py-2 px-4 inline-block">Go to Login</Link>
+            </div>
+          )}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
               {error}

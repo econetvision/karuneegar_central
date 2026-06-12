@@ -110,6 +110,7 @@ def create_app():
         try:
             db.create_all()
             _seed_forum_categories()
+            _migrate_scholarship_columns()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -127,6 +128,29 @@ def _seed_forum_categories():
         ]
         db.session.add_all(categories)
         db.session.commit()
+
+
+def _migrate_scholarship_columns():
+    """Idempotently add new columns to the scholarship table."""
+    from sqlalchemy import text
+    new_cols = [
+        ('applicant_name', 'VARCHAR(200)'),
+        ('parent_name', 'VARCHAR(200)'),
+        ('parent_occupation', 'VARCHAR(200)'),
+        ('parent_income', 'VARCHAR(100)'),
+        ('id_proof_filename', 'VARCHAR(200)'),
+        ('certificate_filename', 'VARCHAR(200)'),
+        ('admission_letter_filename', 'VARCHAR(200)'),
+        ('trust_name', 'VARCHAR(200)'),
+        ('member_id', 'VARCHAR(100)'),
+    ]
+    with db.engine.connect() as conn:
+        for col, dtype in new_cols:
+            try:
+                conn.execute(text(f'ALTER TABLE scholarship ADD COLUMN {col} {dtype}'))
+                conn.commit()
+            except Exception:
+                conn.rollback()
 
 
 def allowed_file(filename):
@@ -782,6 +806,15 @@ def create_scholarship():
         eligibility=data.get('eligibility', ''),
         deadline=data.get('deadline', ''),
         contact_email=data.get('contact_email', ''),
+        applicant_name=data.get('applicant_name', ''),
+        parent_name=data.get('parent_name', ''),
+        parent_occupation=data.get('parent_occupation', ''),
+        parent_income=data.get('parent_income', ''),
+        id_proof_filename=data.get('id_proof_filename', ''),
+        certificate_filename=data.get('certificate_filename', ''),
+        admission_letter_filename=data.get('admission_letter_filename', ''),
+        trust_name=data.get('trust_name', ''),
+        member_id=data.get('member_id', ''),
     )
     db.session.add(s)
     db.session.commit()
@@ -803,7 +836,10 @@ def update_scholarship(sch_id):
         return jsonify({'error': 'Forbidden'}), 403
     data = request.get_json()
     for field in ('title', 'description', 'amount', 'field_of_study',
-                  'institution', 'eligibility', 'deadline', 'contact_email'):
+                  'institution', 'eligibility', 'deadline', 'contact_email',
+                  'applicant_name', 'parent_name', 'parent_occupation', 'parent_income',
+                  'id_proof_filename', 'certificate_filename', 'admission_letter_filename',
+                  'trust_name', 'member_id'):
         if field in data:
             setattr(s, field, data[field])
     db.session.commit()
