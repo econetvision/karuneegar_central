@@ -70,6 +70,8 @@ class Profile(db.Model):
     linkedin = db.Column(db.String(300))
     website = db.Column(db.String(300))
     is_public = db.Column(db.Boolean, nullable=True)  # None=not asked, True=public, False=private
+    achievements = db.Column(db.Text)
+    is_prominent = db.Column(db.Boolean, default=False)
 
     def to_dict(self):
         return {
@@ -87,6 +89,8 @@ class Profile(db.Model):
             'linkedin': self.linkedin,
             'website': self.website,
             'is_public': self.is_public,
+            'achievements': self.achievements,
+            'is_prominent': self.is_prominent,
         }
 
 
@@ -287,3 +291,39 @@ class OtpRequest(db.Model):
     expires_at = db.Column(db.DateTime, nullable=False)
     used = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Scholarship(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type = db.Column(db.String(10), nullable=False)  # 'request' | 'provide'
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    amount = db.Column(db.String(100))
+    field_of_study = db.Column(db.String(200))
+    institution = db.Column(db.String(200))
+    eligibility = db.Column(db.Text)
+    deadline = db.Column(db.String(50))
+    contact_email = db.Column(db.String(120))
+    active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='scholarships')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'poster_username': self.user.username if self.user else None,
+            'poster_name': self.user.profile.full_name if self.user and self.user.profile else None,
+            'type': self.type,
+            'title': self.title,
+            'description': self.description,
+            'amount': self.amount,
+            'field_of_study': self.field_of_study,
+            'institution': self.institution,
+            'eligibility': self.eligibility,
+            'deadline': self.deadline,
+            'contact_email': self.contact_email,
+            'active': self.active,
+            'created_at': self.created_at.isoformat(),
+        }

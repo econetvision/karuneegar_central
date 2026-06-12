@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, User, Globe, Lock } from 'lucide-react';
+import { Camera, Upload, User, Globe, Lock, Star } from 'lucide-react';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,10 +10,11 @@ export default function EditProfile() {
   const [form, setForm] = useState({
     full_name: '', bio: '', phone: '', location: '',
     occupation: '', dob: '', native_place: '', gothram: '',
-    linkedin: '', website: '',
+    linkedin: '', website: '', achievements: '',
   });
   const [isPublic, setIsPublic] = useState<boolean | null>(null);
   const [mobilePublic, setMobilePublic] = useState(false);
+  const [isProminent, setIsProminent] = useState(false);
   const [photoFilename, setPhotoFilename] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,10 +35,12 @@ export default function EditProfile() {
         gothram: p.gothram || '',
         linkedin: p.linkedin || '',
         website: p.website || '',
+        achievements: p.achievements || '',
       });
       setPhotoFilename(p.photo_filename || '');
       setIsPublic(p.is_public ?? null);
       setMobilePublic(r.data.user?.mobile_public ?? false);
+      setIsProminent(p.is_prominent ?? false);
     });
   }, []);
 
@@ -65,7 +68,7 @@ export default function EditProfile() {
     setSaving(true);
     setError('');
     try {
-      await api.put('/profile', { ...form, photo_filename: photoFilename, is_public: isPublic, mobile_public: mobilePublic });
+      await api.put('/profile', { ...form, photo_filename: photoFilename, is_public: isPublic, mobile_public: mobilePublic, is_prominent: isProminent });
       await refreshUser();
       setSuccess(true);
       setTimeout(() => navigate('/profile'), 1200);
@@ -160,6 +163,58 @@ export default function EditProfile() {
             <div>
               <label className="label">Gothram</label>
               <input type="text" className="input" value={form.gothram} onChange={set('gothram')} />
+            </div>
+          </div>
+        </div>
+
+        {/* Achievements & Prominent Figure */}
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Star size={16} className="text-amber-500 fill-amber-400" />
+            <h2 className="font-semibold text-gray-800">Achievements &amp; Recognition</h2>
+          </div>
+          <div>
+            <label className="label">Notable Achievements</label>
+            <textarea
+              className="input min-h-[90px] resize-none"
+              placeholder="Describe your key achievements, entrepreneurial ventures, or contributions to the community…"
+              value={form.achievements}
+              onChange={set('achievements') as any}
+            />
+            <p className="text-xs text-gray-400 mt-1">This will be shown on your profile and in the Prominent Figures section.</p>
+          </div>
+          <div>
+            <label className="label flex items-center gap-1.5">
+              <Star size={13} className="text-amber-500 fill-amber-400" /> Prominent Figure
+            </label>
+            <p className="text-xs text-gray-400 mb-3">
+              For members aged 50+ who are established entrepreneurs or prominent figures in their profession.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsProminent(true)}
+                className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-left
+                  ${isProminent ? 'border-amber-400 bg-amber-50' : 'border-gray-100 hover:border-gray-200'}`}
+              >
+                <Star size={15} className={isProminent ? 'text-amber-500 fill-amber-400' : 'text-gray-400'} />
+                <div>
+                  <p className={`font-medium text-sm ${isProminent ? 'text-amber-700' : 'text-gray-700'}`}>Yes, I am</p>
+                  <p className="text-xs text-gray-400">Feature me in Prominent Figures</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsProminent(false)}
+                className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-left
+                  ${!isProminent ? 'border-gray-400 bg-gray-50' : 'border-gray-100 hover:border-gray-200'}`}
+              >
+                <User size={15} className={!isProminent ? 'text-gray-600' : 'text-gray-400'} />
+                <div>
+                  <p className="font-medium text-sm text-gray-700">Not applicable</p>
+                  <p className="text-xs text-gray-400">Don't feature me</p>
+                </div>
+              </button>
             </div>
           </div>
         </div>

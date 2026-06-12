@@ -19,6 +19,7 @@ import Businesses from './pages/Businesses';
 import BusinessProfileView from './pages/BusinessProfileView';
 import EditBusiness from './pages/EditBusiness';
 import AboutKaruneegar from './pages/AboutKaruneegar';
+import Scholarship from './pages/Scholarship';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/matrimony" element={<Layout><Matrimony /></Layout>} />
           <Route path="/matrimony/create" element={<Layout><MatrimonyCreate /></Layout>} />
           <Route path="/matrimony/:profileId" element={<Layout><MatrimonyView /></Layout>} />
+          <Route path="/scholarships" element={<Layout><Scholarship /></Layout>} />
           <Route path="/about" element={<Layout><AboutKaruneegar /></Layout>} />
           <Route path="/businesses" element={<Layout><Businesses /></Layout>} />
           <Route path="/business/edit" element={<Layout><EditBusiness /></Layout>} />

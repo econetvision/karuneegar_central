@@ -28,8 +28,16 @@ with app.app_context():
         if 'phone_public' not in matrimony_cols:
             conn.execute(text('ALTER TABLE matrimony_profile ADD COLUMN phone_public BOOLEAN DEFAULT false'))
             print('  + matrimony_profile.phone_public')
+        # ── profile table (prominent figures) ────────────────────────────────
+        profile_cols = {c['name'] for c in insp.get_columns('profile')}
+        if 'achievements' not in profile_cols:
+            conn.execute(text('ALTER TABLE profile ADD COLUMN achievements TEXT'))
+            print('  + profile.achievements')
+        if 'is_prominent' not in profile_cols:
+            conn.execute(text('ALTER TABLE profile ADD COLUMN is_prominent BOOLEAN DEFAULT false'))
+            print('  + profile.is_prominent')
         conn.commit()
 
-    # Create any brand-new tables (otp_request, business_profile, …)
+    # Create any brand-new tables (scholarship, …)
     db.create_all()
     print('Migration complete.')

@@ -22,6 +22,7 @@ export default function Navbar() {
     { to: '/forums', label: 'Forums' },
     { to: '/businesses', label: 'Businesses' },
     { to: '/matrimony', label: 'Matrimony' },
+    { to: '/scholarships', label: 'Scholarships' },
     { to: '/about', label: 'About' },
   ];
 

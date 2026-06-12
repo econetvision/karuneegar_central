@@ -19,7 +19,7 @@ from flask_jwt_extended import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
-from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile
+from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, Scholarship
 from sms import generate_otp, send_otp_sms
 from email_otp import send_otp_email
 
@@ -306,7 +306,8 @@ def update_profile():
         db.session.add(user.profile)
 
     fields = ['full_name', 'bio', 'phone', 'location', 'occupation', 'dob',
-              'native_place', 'gothram', 'photo_filename', 'linkedin', 'website', 'is_public']
+              'native_place', 'gothram', 'photo_filename', 'linkedin', 'website',
+              'is_public', 'achievements', 'is_prominent']
     for f in fields:
         if f in data:
             setattr(user.profile, f, data[f])
@@ -340,11 +341,13 @@ def get_user_profile(username):
 
 @app.route('/api/members', methods=['GET'])
 def get_members():
-    page   = request.args.get('page', 1, type=int)
-    search = request.args.get('q', '')
+    page      = request.args.get('page', 1, type=int)
+    search    = request.args.get('q', '')
+    prominent = request.args.get('prominent', '0') == '1'
 
-    # Only show members who explicitly opted in
     query = User.query.join(Profile).filter(Profile.is_public == True)  # noqa: E712
+    if prominent:
+        query = query.filter(Profile.is_prominent == True)  # noqa: E712
     if search:
         query = query.filter(
             Profile.full_name.ilike(f'%{search}%') |
@@ -696,6 +699,86 @@ def get_user_business(username):
     user = User.query.filter_by(username=username).first_or_404()
     bp = BusinessProfile.query.filter_by(user_id=user.id, active=True).first()
     return jsonify({'business': bp.to_dict() if bp else None})
+
+
+# ─── Scholarships ─────────────────────────────────────────────────────────────
+
+@app.route('/api/scholarships', methods=['GET'])
+def get_scholarships():
+    page  = request.args.get('page', 1, type=int)
+    stype = request.args.get('type', '')  # 'request' | 'provide' | '' (all)
+    query = Scholarship.query.filter_by(active=True).order_by(Scholarship.created_at.desc())
+    if stype in ('request', 'provide'):
+        query = query.filter_by(type=stype)
+    pagination = query.paginate(page=page, per_page=12, error_out=False)
+    return jsonify({
+        'scholarships': [s.to_dict() for s in pagination.items],
+        'total': pagination.total,
+        'pages': pagination.pages,
+        'page': page,
+    })
+
+
+@app.route('/api/scholarships', methods=['POST'])
+@jwt_required()
+def create_scholarship():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    stype = data.get('type', '')
+    if stype not in ('request', 'provide'):
+        return jsonify({'error': 'type must be request or provide'}), 400
+    if not data.get('title', '').strip():
+        return jsonify({'error': 'title is required'}), 400
+    s = Scholarship(
+        user_id=user_id,
+        type=stype,
+        title=data['title'].strip(),
+        description=data.get('description', ''),
+        amount=data.get('amount', ''),
+        field_of_study=data.get('field_of_study', ''),
+        institution=data.get('institution', ''),
+        eligibility=data.get('eligibility', ''),
+        deadline=data.get('deadline', ''),
+        contact_email=data.get('contact_email', ''),
+    )
+    db.session.add(s)
+    db.session.commit()
+    return jsonify({'scholarship': s.to_dict()}), 201
+
+
+@app.route('/api/scholarships/<int:sch_id>', methods=['GET'])
+def get_scholarship(sch_id):
+    s = Scholarship.query.get_or_404(sch_id)
+    return jsonify({'scholarship': s.to_dict()})
+
+
+@app.route('/api/scholarships/<int:sch_id>', methods=['PUT'])
+@jwt_required()
+def update_scholarship(sch_id):
+    user_id = int(get_jwt_identity())
+    s = Scholarship.query.get_or_404(sch_id)
+    if s.user_id != user_id:
+        return jsonify({'error': 'Forbidden'}), 403
+    data = request.get_json()
+    for field in ('title', 'description', 'amount', 'field_of_study',
+                  'institution', 'eligibility', 'deadline', 'contact_email'):
+        if field in data:
+            setattr(s, field, data[field])
+    db.session.commit()
+    return jsonify({'scholarship': s.to_dict()})
+
+
+@app.route('/api/scholarships/<int:sch_id>', methods=['DELETE'])
+@jwt_required()
+def delete_scholarship(sch_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    s = Scholarship.query.get_or_404(sch_id)
+    if s.user_id != user_id and not (user and user.is_admin):
+        return jsonify({'error': 'Forbidden'}), 403
+    s.active = False
+    db.session.commit()
+    return jsonify({'ok': True})
 
 
 # ─── Stats ────────────────────────────────────────────────────────────────────
