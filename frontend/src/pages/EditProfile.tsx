@@ -11,6 +11,7 @@ export default function EditProfile() {
     linkedin: '', website: '',
   });
   const [isPublic, setIsPublic] = useState<boolean | null>(null);
+  const [mobilePublic, setMobilePublic] = useState(false);
   const [photoFilename, setPhotoFilename] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,6 +35,7 @@ export default function EditProfile() {
       });
       setPhotoFilename(p.photo_filename || '');
       setIsPublic(p.is_public ?? null);
+      setMobilePublic(r.data.user?.mobile_public ?? false);
     });
   }, []);
 
@@ -61,7 +63,7 @@ export default function EditProfile() {
     setSaving(true);
     setError('');
     try {
-      await api.put('/profile', { ...form, photo_filename: photoFilename, is_public: isPublic });
+      await api.put('/profile', { ...form, photo_filename: photoFilename, is_public: isPublic, mobile_public: mobilePublic });
       setSuccess(true);
       setTimeout(() => navigate('/profile'), 1200);
     } catch (err: any) {
@@ -173,34 +175,67 @@ export default function EditProfile() {
         </div>
 
         {/* Privacy */}
-        <div className="card p-6">
-          <h2 className="font-semibold text-gray-800 mb-1">Privacy</h2>
-          <p className="text-sm text-gray-400 mb-4">Control whether your profile is visible in the community directory.</p>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              onClick={() => setIsPublic(true)}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left
-                ${isPublic === true ? 'border-green-400 bg-green-50' : 'border-gray-100 hover:border-gray-200'}`}
-            >
-              <Globe size={18} className={isPublic === true ? 'text-green-600' : 'text-gray-400'} />
-              <div>
-                <p className={`font-medium text-sm ${isPublic === true ? 'text-green-700' : 'text-gray-700'}`}>Public</p>
-                <p className="text-xs text-gray-400">Visible in member directory</p>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsPublic(false)}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left
-                ${isPublic === false ? 'border-gray-400 bg-gray-50' : 'border-gray-100 hover:border-gray-200'}`}
-            >
-              <Lock size={18} className={isPublic === false ? 'text-gray-600' : 'text-gray-400'} />
-              <div>
-                <p className={`font-medium text-sm ${isPublic === false ? 'text-gray-700' : 'text-gray-700'}`}>Private</p>
-                <p className="text-xs text-gray-400">Only visible to you</p>
-              </div>
-            </button>
+        <div className="card p-6 space-y-5">
+          <div>
+            <h2 className="font-semibold text-gray-800 mb-1">Profile Visibility</h2>
+            <p className="text-sm text-gray-400 mb-4">Control whether your profile is visible in the community directory.</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => setIsPublic(true)}
+                className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left
+                  ${isPublic === true ? 'border-green-400 bg-green-50' : 'border-gray-100 hover:border-gray-200'}`}
+              >
+                <Globe size={18} className={isPublic === true ? 'text-green-600' : 'text-gray-400'} />
+                <div>
+                  <p className={`font-medium text-sm ${isPublic === true ? 'text-green-700' : 'text-gray-700'}`}>Public</p>
+                  <p className="text-xs text-gray-400">Visible in member directory</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPublic(false)}
+                className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left
+                  ${isPublic === false ? 'border-gray-400 bg-gray-50' : 'border-gray-100 hover:border-gray-200'}`}
+              >
+                <Lock size={18} className={isPublic === false ? 'text-gray-600' : 'text-gray-400'} />
+                <div>
+                  <p className={`font-medium text-sm ${isPublic === false ? 'text-gray-700' : 'text-gray-700'}`}>Private</p>
+                  <p className="text-xs text-gray-400">Only visible to you</p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-5">
+            <h2 className="font-semibold text-gray-800 mb-1">Mobile Number Visibility</h2>
+            <p className="text-sm text-gray-400 mb-3">Choose whether other members can see your verified mobile number.</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => setMobilePublic(true)}
+                className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left
+                  ${mobilePublic ? 'border-green-400 bg-green-50' : 'border-gray-100 hover:border-gray-200'}`}
+              >
+                <Globe size={18} className={mobilePublic ? 'text-green-600' : 'text-gray-400'} />
+                <div>
+                  <p className={`font-medium text-sm ${mobilePublic ? 'text-green-700' : 'text-gray-700'}`}>Show Number</p>
+                  <p className="text-xs text-gray-400">Full number visible to members</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobilePublic(false)}
+                className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left
+                  ${!mobilePublic ? 'border-gray-400 bg-gray-50' : 'border-gray-100 hover:border-gray-200'}`}
+              >
+                <Lock size={18} className={!mobilePublic ? 'text-gray-600' : 'text-gray-400'} />
+                <div>
+                  <p className="font-medium text-sm text-gray-700">Hide Number</p>
+                  <p className="text-xs text-gray-400">Number masked from other members</p>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 

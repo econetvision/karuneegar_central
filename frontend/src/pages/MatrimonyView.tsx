@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronLeft, MapPin, GraduationCap, Briefcase, Phone, Mail, Star, User } from 'lucide-react';
+import { ChevronLeft, MapPin, GraduationCap, Briefcase, Phone, Mail, Star, User, Lock } from 'lucide-react';
 import api from '../api/client';
 
 interface Profile {
@@ -21,6 +21,7 @@ interface Profile {
   photo_filename: string;
   contact_email: string;
   contact_phone: string;
+  phone_public: boolean;
 }
 
 export default function MatrimonyView() {

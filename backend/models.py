@@ -5,6 +5,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 db = SQLAlchemy()
 
 
+def _mask_mobile(mobile: str):
+    """Show country code + first few digits, mask the rest with *."""
+    if not mobile:
+        return None
+    visible = min(8, max(4, len(mobile) - 5))
+    return mobile[:visible] + '*' * (len(mobile) - visible)
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -12,6 +20,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(256))
     mobile = db.Column(db.String(20), unique=True, nullable=True)
     mobile_verified = db.Column(db.Boolean, default=False)
+    mobile_public = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_admin = db.Column(db.Boolean, default=False)
 
@@ -28,12 +37,14 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def to_dict(self):
+    def to_dict(self, full: bool = False):
+        show = full or self.mobile_public
         return {
             'id': self.id,
             'username': self.username,
             'email': self.email,
-            'mobile': self.mobile,
+            'mobile': self.mobile if show else _mask_mobile(self.mobile),
+            'mobile_public': self.mobile_public,
             'mobile_verified': self.mobile_verified,
             'created_at': self.created_at.isoformat(),
             'is_admin': self.is_admin,
@@ -186,10 +197,12 @@ class MatrimonyProfile(db.Model):
     photo_filename = db.Column(db.String(300))
     contact_email = db.Column(db.String(120))
     contact_phone = db.Column(db.String(20))
+    phone_public = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def to_dict(self):
+    def to_dict(self, full: bool = False):
+        show_phone = full or self.phone_public
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -208,7 +221,8 @@ class MatrimonyProfile(db.Model):
             'about': self.about,
             'photo_filename': self.photo_filename,
             'contact_email': self.contact_email,
-            'contact_phone': self.contact_phone,
+            'contact_phone': self.contact_phone if show_phone else _mask_mobile(self.contact_phone),
+            'phone_public': self.phone_public,
             'active': self.active,
             'created_at': self.created_at.isoformat(),
         }

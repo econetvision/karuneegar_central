@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, User } from 'lucide-react';
+import { Upload, User, Globe, Lock } from 'lucide-react';
 import api from '../api/client';
 
 type FieldEl = ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
@@ -14,6 +14,7 @@ export default function MatrimonyCreate() {
     gothram: '', native_place: '', star: '', raasi: '',
     about: '', contact_email: '', contact_phone: '',
   });
+  const [phonePublic, setPhonePublic] = useState(false);
   const [photoFilename, setPhotoFilename] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,7 +44,7 @@ export default function MatrimonyCreate() {
     setSaving(true);
     setError('');
     try {
-      const payload = { ...form, age: form.age ? parseInt(form.age) : null, photo_filename: photoFilename };
+      const payload = { ...form, age: form.age ? parseInt(form.age) : null, photo_filename: photoFilename, phone_public: phonePublic };
       const r = await api.post('/matrimony', payload);
       navigate(`/matrimony/${r.data.profile.id}`);
     } catch (err: unknown) {
@@ -197,6 +198,30 @@ export default function MatrimonyCreate() {
             <div>
               <label className="label">Contact Phone</label>
               <input type="tel" className="input" value={form.contact_phone} onChange={set('contact_phone')} />
+            </div>
+          </div>
+          <div>
+            <label className="label">Phone Visibility</label>
+            <p className="text-xs text-gray-400 mb-2">Choose whether your phone number is visible to other members.</p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setPhonePublic(false)}
+                className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-left
+                  ${!phonePublic ? 'border-gray-400 bg-gray-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                <Lock size={15} className={!phonePublic ? 'text-gray-600' : 'text-gray-400'} />
+                <div>
+                  <p className="font-medium text-sm text-gray-700">Hidden</p>
+                  <p className="text-xs text-gray-400">Masked from members</p>
+                </div>
+              </button>
+              <button type="button" onClick={() => setPhonePublic(true)}
+                className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-left
+                  ${phonePublic ? 'border-green-400 bg-green-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                <Globe size={15} className={phonePublic ? 'text-green-600' : 'text-gray-400'} />
+                <div>
+                  <p className={`font-medium text-sm ${phonePublic ? 'text-green-700' : 'text-gray-700'}`}>Visible</p>
+                  <p className="text-xs text-gray-400">Full number shown</p>
+                </div>
+              </button>
             </div>
           </div>
         </div>

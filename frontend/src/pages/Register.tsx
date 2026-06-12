@@ -12,6 +12,7 @@ export default function Register() {
   const [form, setForm] = useState({
     full_name: '', username: '', email: '', password: '', confirm: '', mobile: '',
   });
+  const [mobilePublic, setMobilePublic] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -80,7 +81,7 @@ export default function Register() {
     if (!otpSent || otpCode.length !== 5) { setError('Please verify your mobile number first.'); return; }
     setLoading(true);
     try {
-      await register(form.username, form.email, form.password, form.full_name, form.mobile, otpCode);
+      await register(form.username, form.email, form.password, form.full_name, form.mobile, otpCode, mobilePublic);
       navigate('/profile');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -217,6 +218,23 @@ export default function Register() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Mobile visibility consent */}
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-100">
+              <input
+                type="checkbox"
+                id="mobile_public"
+                checked={mobilePublic}
+                onChange={(e) => setMobilePublic(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-saffron-600 flex-shrink-0"
+              />
+              <label htmlFor="mobile_public" className="text-sm text-gray-700 cursor-pointer select-none">
+                Allow other community members to see my mobile number
+                <span className="block text-xs text-gray-400 mt-0.5">
+                  If unchecked, your number will be hidden from other members. You can change this anytime in your profile settings.
+                </span>
+              </label>
             </div>
 
             <button

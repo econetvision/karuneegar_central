@@ -149,7 +149,8 @@ def register():
         return jsonify({'error': 'Invalid or expired OTP. Please request a new one.'}), 400
 
     otp_req.used = True
-    user = User(username=username, email=email, mobile=mobile, mobile_verified=True)
+    mobile_public = bool(data.get('mobile_public', False))
+    user = User(username=username, email=email, mobile=mobile, mobile_verified=True, mobile_public=mobile_public)
     user.set_password(password)
     db.session.add(user)
     db.session.flush()
@@ -159,7 +160,7 @@ def register():
     db.session.commit()
 
     token = create_access_token(identity=str(user.id))
-    return jsonify({'token': token, 'user': user.to_dict()}), 201
+    return jsonify({'token': token, 'user': user.to_dict(full=True)}), 201
 
 
 @app.route('/api/auth/send-otp', methods=['POST'])
@@ -229,7 +230,7 @@ def login():
         return jsonify({'error': 'Invalid credentials'}), 401
 
     token = create_access_token(identity=str(user.id))
-    return jsonify({'token': token, 'user': user.to_dict()})
+    return jsonify({'token': token, 'user': user.to_dict(full=True)})
 
 
 @app.route('/api/auth/me', methods=['GET'])
@@ -238,7 +239,7 @@ def me():
     user = User.query.get(int(get_jwt_identity()))
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    return jsonify({'user': user.to_dict()})
+    return jsonify({'user': user.to_dict(full=True)})
 
 
 # ─── Upload ───────────────────────────────────────────────────────────────────
@@ -270,7 +271,7 @@ def serve_upload(filename):
 def get_own_profile():
     user = User.query.get(int(get_jwt_identity()))
     profile = user.profile or Profile(user_id=user.id)
-    return jsonify({'user': user.to_dict(), 'profile': profile.to_dict()})
+    return jsonify({'user': user.to_dict(full=True), 'profile': profile.to_dict()})
 
 
 @app.route('/api/profile', methods=['PUT'])
@@ -289,8 +290,21 @@ def update_profile():
         if f in data:
             setattr(user.profile, f, data[f])
 
+    if 'mobile_public' in data:
+        user.mobile_public = bool(data['mobile_public'])
+
     db.session.commit()
     return jsonify({'profile': user.profile.to_dict()})
+
+
+@app.route('/api/profile/mobile-visibility', methods=['PATCH'])
+@jwt_required()
+def update_mobile_visibility():
+    user = User.query.get(int(get_jwt_identity()))
+    data = request.get_json()
+    user.mobile_public = bool(data.get('mobile_public', False))
+    db.session.commit()
+    return jsonify({'mobile_public': user.mobile_public})
 
 
 @app.route('/api/users/<username>', methods=['GET'])
@@ -508,7 +522,7 @@ def create_matrimony_profile():
             'full_name', 'gender', 'seeking', 'age', 'height',
             'education', 'occupation', 'salary_range', 'gothram',
             'native_place', 'star', 'raasi', 'about',
-            'photo_filename', 'contact_email', 'contact_phone',
+            'photo_filename', 'contact_email', 'contact_phone', 'phone_public',
         ]
     })
     db.session.add(profile)
@@ -531,7 +545,8 @@ def update_matrimony_profile(profile_id):
 
     for f in ['full_name', 'gender', 'seeking', 'age', 'height', 'education',
               'occupation', 'salary_range', 'gothram', 'native_place', 'star',
-              'raasi', 'about', 'photo_filename', 'contact_email', 'contact_phone', 'active']:
+              'raasi', 'about', 'photo_filename', 'contact_email', 'contact_phone',
+              'phone_public', 'active']:
         if f in data:
             setattr(profile, f, data[f])
 
@@ -556,7 +571,7 @@ def get_my_matrimony():
     profile = MatrimonyProfile.query.filter_by(user_id=user_id).first()
     if not profile:
         return jsonify({'profile': None})
-    return jsonify({'profile': profile.to_dict()})
+    return jsonify({'profile': profile.to_dict(full=True)})
 
 
 # ─── Business Profiles ────────────────────────────────────────────────────────
