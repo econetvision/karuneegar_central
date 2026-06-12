@@ -4,8 +4,10 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
 });
 
+// Cloudinary uploads are stored as full https:// URLs; local dev files are
+// bare filenames served through the Flask /api/uploads/ route.
 export const uploadUrl = (filename: string) =>
-  `${import.meta.env.VITE_API_URL ?? '/api'}/uploads/${filename}`;
+  filename.startsWith('http') ? filename : `${import.meta.env.VITE_API_URL ?? '/api'}/uploads/${filename}`;
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');

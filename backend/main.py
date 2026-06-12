@@ -254,6 +254,20 @@ def me():
 
 # ─── Upload ───────────────────────────────────────────────────────────────────
 
+def _upload_to_cloudinary(buf) -> str:
+    """Upload image bytes to Cloudinary; returns secure_url. Raises on failure."""
+    import cloudinary
+    import cloudinary.uploader
+    # cloudinary auto-reads CLOUDINARY_URL env var — no manual config needed
+    result = cloudinary.uploader.upload(
+        buf,
+        folder='karuneegar',
+        resource_type='image',
+        format='jpg',
+    )
+    return result['secure_url']
+
+
 @app.route('/api/upload', methods=['POST'])
 @jwt_required()
 def upload_file():
@@ -264,20 +278,36 @@ def upload_file():
         return jsonify({'error': 'Invalid file type'}), 400
 
     try:
+        import io
         from PIL import Image
         img = Image.open(file.stream).convert('RGB')
         img.thumbnail((900, 1200), Image.LANCZOS)
-        filename = f"{uuid.uuid4().hex}.jpg"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        img.save(filepath, 'JPEG', quality=85, optimize=True)
+        buf = io.BytesIO()
+        img.save(buf, 'JPEG', quality=85, optimize=True)
+        buf.seek(0)
     except Exception:
         return jsonify({'error': 'Invalid or unreadable image file'}), 400
 
+    if os.environ.get('CLOUDINARY_URL'):
+        try:
+            url = _upload_to_cloudinary(buf)
+            return jsonify({'filename': url}), 201
+        except Exception as exc:
+            app.logger.error('Cloudinary upload error: %s', exc)
+            return jsonify({'error': 'Image upload failed'}), 500
+
+    # Local fallback (development / no Cloudinary configured)
+    filename = f"{uuid.uuid4().hex}.jpg"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    with open(filepath, 'wb') as f:
+        f.write(buf.read())
     return jsonify({'filename': filename}), 201
 
 
 @app.route('/api/uploads/<filename>')
 def serve_upload(filename):
+    # Cloudinary uploads are served directly via CDN — this route only handles
+    # locally stored files (development or pre-Cloudinary uploads).
     response = send_from_directory(app.config['UPLOAD_FOLDER'], filename)
     response.headers['Cache-Control'] = 'private, no-transform, max-age=3600'
     response.headers['Content-Disposition'] = 'inline'
