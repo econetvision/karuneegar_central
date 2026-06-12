@@ -33,14 +33,16 @@ def send_otp_sms(mobile: str, otp: str) -> bool:
 # ── SMS delivery ──────────────────────────────────────────────────────────────
 
 def _send_sms(mobile: str, otp: str) -> bool:
-    provider = os.environ.get('SMS_PROVIDER', 'twilio').strip().lower()
+    # Default to twofactor — it's the configured provider on this project.
+    # If you use Twilio or Fast2SMS, set SMS_PROVIDER=twilio or fast2sms.
+    provider = os.environ.get('SMS_PROVIDER', 'twofactor').strip().lower()
     logger.info('SMS_PROVIDER=%r  mobile=%s', provider, mobile)
+    if provider == 'twofactor':
+        return _twofactor_sms(mobile, otp)
     if provider == 'twilio':
         return _twilio_sms(mobile, otp)
     if provider == 'fast2sms':
         return _fast2sms(mobile, otp)
-    if provider == 'twofactor':
-        return _twofactor_sms(mobile, otp)
     logger.error('Unknown SMS_PROVIDER: %r (check env var)', provider)
     return False
 
@@ -79,16 +81,28 @@ def _twilio_sms(mobile: str, otp: str) -> bool:
 
 
 def _twofactor_sms(mobile: str, otp: str) -> bool:
-    """2Factor.in transactional SMS OTP."""
+    """2Factor.in transactional SMS OTP.
+
+    URL format (no template — uses 2Factor's built-in OTP message):
+      https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}
+
+    If you have a DLT-registered template, set TWOFACTOR_SMS_TEMPLATE to its
+    name and the URL becomes .../SMS/{number}/{otp}/{template}.
+    """
     api_key = os.environ.get('TWOFACTOR_API_KEY')
     if not api_key:
         logger.error('2Factor: TWOFACTOR_API_KEY env var is MISSING')
         return False
 
     number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
-    template = os.environ.get('TWOFACTOR_SMS_TEMPLATE', 'otp1')
-    url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}/{template}'
-    logger.info('2Factor SMS: number=%s template=%s', number, template)
+    template = os.environ.get('TWOFACTOR_SMS_TEMPLATE', '').strip()
+
+    if template:
+        url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}/{template}'
+        logger.info('2Factor SMS (template=%s): number=%s', template, number)
+    else:
+        url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}'
+        logger.info('2Factor SMS (no template): number=%s', number)
 
     try:
         with urllib.request.urlopen(urllib.request.Request(url), timeout=10) as resp:
@@ -96,10 +110,11 @@ def _twofactor_sms(mobile: str, otp: str) -> bool:
             logger.info('2Factor SMS response: %s', body)
             if body.get('Status') == 'Success':
                 return True
-            logger.error('2Factor SMS non-success: %s', body)
+            logger.error('2Factor SMS failed — Status=%s Details=%s', body.get('Status'), body.get('Details'))
             return False
     except urllib.error.HTTPError as exc:
-        logger.error('2Factor SMS HTTP %s: %s', exc.code, exc.read().decode('utf-8', errors='replace'))
+        raw = exc.read().decode('utf-8', errors='replace')
+        logger.error('2Factor SMS HTTP %s: %s', exc.code, raw)
         return False
     except Exception as exc:
         logger.error('2Factor SMS error: %s', exc)
@@ -145,17 +160,24 @@ def _fast2sms(mobile: str, otp: str) -> bool:
 # ── WhatsApp fallback ─────────────────────────────────────────────────────────
 
 def _send_whatsapp(mobile: str, otp: str) -> bool:
-    """Try WhatsApp providers in order of availability."""
-    if os.environ.get('TWOFACTOR_API_KEY'):
-        if _twofactor_whatsapp(mobile, otp):
-            return True
+    """Try WhatsApp providers in order of availability.
 
+    2Factor WhatsApp is skipped here because when SMS_PROVIDER=twofactor and
+    the SMS already failed, re-using the same 2Factor account for the fallback
+    risks triggering a voice call on accounts not enabled for WhatsApp.
+    Use Twilio or Fast2SMS for the WhatsApp fallback instead.
+    """
     if os.environ.get('TWILIO_ACCOUNT_SID') and os.environ.get('TWILIO_WHATSAPP_FROM'):
         if _twilio_whatsapp(mobile, otp):
             return True
 
     if os.environ.get('FAST2SMS_API_KEY'):
         if _fast2sms_whatsapp(mobile, otp):
+            return True
+
+    if os.environ.get('TWOFACTOR_API_KEY') and os.environ.get('TWOFACTOR_WHATSAPP_TEMPLATE'):
+        # Only use 2Factor WhatsApp if a specific WhatsApp template is configured.
+        if _twofactor_whatsapp(mobile, otp):
             return True
 
     logger.error('All WhatsApp fallback providers failed for %s', mobile)
