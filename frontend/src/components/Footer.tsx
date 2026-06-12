@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LogoIcon } from './KarunegarLogo';
 
 export default function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="bg-gray-900 text-gray-300 mt-16">
       <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -14,20 +16,19 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
-              The digital home for the Karuneegar community — connecting families,
-              celebrating heritage, and building a prosperous future together.
+              {t('footer.tagline')}
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold text-white mb-3">Quick Links</h4>
+            <h4 className="font-semibold text-white mb-3">{t('footer.quickLinks')}</h4>
             <ul className="space-y-2 text-sm">
               {[
-                ['Members', '/members'],
-                ['Family Tree', '/family-tree'],
-                ['Business Forums', '/forums'],
-                ['Matrimony', '/matrimony'],
-                ['About Karuneegars', '/about'],
+                [t('nav.members'), '/members'],
+                [t('nav.familyTree'), '/family-tree'],
+                [t('footer.forums'), '/forums'],
+                [t('nav.matrimony'), '/matrimony'],
+                [t('nav.about'), '/about'],
               ].map(([label, href]) => (
                 <li key={href}>
                   <Link to={href} className="hover:text-saffron-400 transition-colors">{label}</Link>
@@ -37,12 +38,12 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-white mb-3">Community</h4>
+            <h4 className="font-semibold text-white mb-3">{t('footer.community')}</h4>
             <ul className="space-y-2 text-sm">
               {[
-                ['Register', '/register'],
-                ['Login', '/login'],
-                ['My Profile', '/profile'],
+                [t('footer.register'), '/register'],
+                [t('footer.login'), '/login'],
+                [t('footer.myProfile'), '/profile'],
               ].map(([label, href]) => (
                 <li key={href}>
                   <Link to={href} className="hover:text-saffron-400 transition-colors">{label}</Link>
@@ -53,7 +54,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-6 text-sm text-gray-500 text-center">
-          © {new Date().getFullYear()} Karuneegar Central. Built with ❤️ for the community.
+          {t('footer.copyright', { year: new Date().getFullYear() })}
         </div>
       </div>
     </footer>

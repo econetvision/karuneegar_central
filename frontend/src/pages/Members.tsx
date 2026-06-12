@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Users, MapPin, Briefcase, User, Star, Award } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 
 interface Member {
@@ -19,6 +20,7 @@ interface Member {
 }
 
 export default function Members() {
+  const { t } = useTranslation();
   const [members, setMembers] = useState<Member[]>([]);
   const [prominent, setProminent] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,9 +48,9 @@ export default function Members() {
     <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="mb-8">
         <h1 className="section-title flex items-center gap-2 mb-2">
-          <Users className="text-saffron-600" size={28} /> Community Members
+          <Users className="text-saffron-600" size={28} /> {t('members.title')}
         </h1>
-        <p className="text-gray-500">Connect with fellow Karuneegar community members.</p>
+        <p className="text-gray-500">{t('members.subtitle')}</p>
       </div>
 
       {/* Prominent Figures */}
@@ -56,8 +58,8 @@ export default function Members() {
         <section className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <Star size={20} className="text-amber-500 fill-amber-400" />
-            <h2 className="font-display font-bold text-xl text-gray-900">Prominent Figures</h2>
-            <span className="badge bg-amber-100 text-amber-700 ml-1">50+ · Entrepreneurs &amp; Leaders</span>
+            <h2 className="font-display font-bold text-xl text-gray-900">{t('members.prominentTitle')}</h2>
+            <span className="badge bg-amber-100 text-amber-700 ml-1">{t('members.prominentBadge')}</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {prominent.map((m) => (
@@ -114,7 +116,7 @@ export default function Members() {
         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           type="text"
-          placeholder="Search by name, location, or occupation…"
+          placeholder={t('members.searchPlaceholder')}
           className="input pl-11 max-w-lg"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -128,7 +130,7 @@ export default function Members() {
       ) : members.length === 0 ? (
         <div className="card p-16 text-center">
           <Users size={48} className="text-gray-200 mx-auto mb-4" />
-          <p className="text-gray-500">No members found.</p>
+          <p className="text-gray-500">{t('members.noMembers')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">

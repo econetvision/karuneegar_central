@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Phone, CheckCircle2, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/client';
 import PhoneInput from '../components/PhoneInput';
@@ -8,6 +9,7 @@ import PhoneInput from '../components/PhoneInput';
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [form, setForm] = useState({
     full_name: '', username: '', email: '', password: '', confirm: '', mobile: '',
@@ -101,8 +103,8 @@ export default function Register() {
               K
             </div>
           </Link>
-          <h1 className="font-display font-bold text-2xl text-gray-900">Join Karuneegar Central</h1>
-          <p className="text-gray-500 mt-1">Create your community profile</p>
+          <h1 className="font-display font-bold text-2xl text-gray-900">{t('auth.joinTitle')}</h1>
+          <p className="text-gray-500 mt-1">{t('auth.createProfileSubtitle')}</p>
         </div>
 
         <div className="card p-8">
@@ -115,44 +117,44 @@ export default function Register() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Basic fields */}
             <div>
-              <label className="label">Full Name</label>
-              <input type="text" className="input" placeholder="Your full name"
+              <label className="label">{t('auth.fullName')}</label>
+              <input type="text" className="input" placeholder={t('auth.fullNamePlaceholder')}
                 value={form.full_name} onChange={set('full_name')} required />
             </div>
             <div>
-              <label className="label">Username</label>
+              <label className="label">{t('auth.username')}</label>
               <input
                 type="text"
                 className="input"
-                placeholder="e.g. ravi_kumar"
+                placeholder={t('auth.usernamePlaceholder')}
                 value={form.username}
                 onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
                 minLength={3}
                 maxLength={30}
                 required
               />
-              <p className="mt-1 text-xs text-gray-400">3–30 chars · letters, numbers, underscore only</p>
+              <p className="mt-1 text-xs text-gray-400">{t('auth.usernameHint')}</p>
             </div>
             <div>
-              <label className="label">Email</label>
-              <input type="email" className="input" placeholder="your@email.com"
+              <label className="label">{t('auth.email')}</label>
+              <input type="email" className="input" placeholder={t('auth.emailFieldPlaceholder')}
                 value={form.email} onChange={set('email')} required />
             </div>
             <div>
-              <label className="label">Password</label>
-              <input type="password" className="input" placeholder="At least 6 characters"
+              <label className="label">{t('auth.password')}</label>
+              <input type="password" className="input" placeholder={t('auth.passwordMin')}
                 value={form.password} onChange={set('password')} required minLength={6} />
             </div>
             <div>
-              <label className="label">Confirm Password</label>
-              <input type="password" className="input" placeholder="Repeat your password"
+              <label className="label">{t('auth.confirmPassword')}</label>
+              <input type="password" className="input" placeholder={t('auth.confirmPasswordPlaceholder')}
                 value={form.confirm} onChange={set('confirm')} required />
             </div>
 
             {/* Mobile + OTP */}
             <div className="pt-1 border-t border-gray-100">
               <label className="label flex items-center gap-1.5">
-                <Phone size={13} className="text-saffron-600" /> Mobile Number
+                <Phone size={13} className="text-saffron-600" /> {t('auth.mobileNumber')}
               </label>
               <div className="flex gap-2">
                 <PhoneInput
@@ -174,18 +176,18 @@ export default function Register() {
                   ) : countdown > 0 ? (
                     `${countdown}s`
                   ) : otpSent ? (
-                    'Resend'
+                    t('auth.resend')
                   ) : isIndian ? (
-                    'Send OTP'
+                    t('auth.sendOtp')
                   ) : (
-                    'Email OTP'
+                    t('auth.emailOtp')
                   )}
                 </button>
               </div>
 
               {!isIndian && !otpSent && (
                 <p className="mt-1.5 text-xs text-amber-600">
-                  OTP will be sent to your email address above.
+                  {t('auth.otpEmailHint')}
                 </p>
               )}
 
@@ -196,7 +198,7 @@ export default function Register() {
                     {otpCode.length === 5
                       ? <CheckCircle2 size={13} className="text-green-500" />
                       : <span className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 inline-block" />}
-                    Enter the 5-digit code sent to your {otpVia === 'email' ? `email (${form.email})` : `mobile (${form.mobile})`}
+                    {t('auth.otpPrompt', { destination: otpVia === 'email' ? `email (${form.email})` : `mobile (${form.mobile})` })}
                   </label>
                   <input
                     type="text"
@@ -230,9 +232,9 @@ export default function Register() {
                 className="mt-0.5 w-4 h-4 accent-saffron-600 flex-shrink-0"
               />
               <label htmlFor="mobile_public" className="text-sm text-gray-700 cursor-pointer select-none">
-                Allow other community members to see my mobile number
+                {t('auth.mobilePublicConsent')}
                 <span className="block text-xs text-gray-400 mt-0.5">
-                  If unchecked, your number will be hidden from other members. You can change this anytime in your profile settings.
+                  {t('auth.mobilePublicHint')}
                 </span>
               </label>
             </div>
@@ -242,14 +244,14 @@ export default function Register() {
               disabled={loading || !otpSent || otpCode.length !== 5}
               className="btn-primary w-full justify-center flex"
             >
-              {loading ? 'Creating account…' : 'Create Account'}
+              {loading ? t('auth.creatingAccount') : t('auth.createAccountBtn')}
             </button>
           </form>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Already a member?{' '}
-          <Link to="/login" className="text-saffron-600 font-medium hover:underline">Sign in</Link>
+          {t('auth.alreadyMember')}{' '}
+          <Link to="/login" className="text-saffron-600 font-medium hover:underline">{t('auth.signInLink')}</Link>
         </p>
       </div>
     </div>

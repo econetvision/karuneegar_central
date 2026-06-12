@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, GitBranch, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -93,6 +94,7 @@ function TreeNode({
 
 export default function FamilyTree() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -128,7 +130,7 @@ export default function FamilyTree() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Remove this family member?')) return;
+    if (!confirm(t('familyTree.removeConfirm'))) return;
     await api.delete(`/family-tree/${id}`);
     setMembers((prev) => prev.filter((m) => m.id !== id));
   };
@@ -160,9 +162,9 @@ export default function FamilyTree() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center">
         <GitBranch size={48} className="text-saffron-300 mx-auto mb-4" />
-        <h2 className="font-display font-bold text-2xl text-gray-800 mb-2">Family Tree</h2>
-        <p className="text-gray-500 mb-6">Please log in to view and manage your family tree.</p>
-        <Link to="/login" className="btn-primary">Login to Continue</Link>
+        <h2 className="font-display font-bold text-2xl text-gray-800 mb-2">{t('familyTree.title')}</h2>
+        <p className="text-gray-500 mb-6">{t('familyTree.loginPrompt')}</p>
+        <Link to="/login" className="btn-primary">{t('familyTree.loginBtn')}</Link>
       </div>
     );
   }
@@ -172,12 +174,12 @@ export default function FamilyTree() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="section-title flex items-center gap-2">
-            <GitBranch className="text-saffron-600" size={28} /> Family Tree
+            <GitBranch className="text-saffron-600" size={28} /> {t('familyTree.title')}
           </h1>
-          <p className="text-gray-500 mt-1">{members.length} members recorded</p>
+          <p className="text-gray-500 mt-1">{t('familyTree.membersCount', { count: members.length })}</p>
         </div>
         <button onClick={openAdd} className="btn-primary flex items-center gap-2">
-          <Plus size={18} /> Add Member
+          <Plus size={18} /> {t('familyTree.addMember')}
         </button>
       </div>
 
@@ -188,17 +190,17 @@ export default function FamilyTree() {
       ) : members.length === 0 ? (
         <div className="card p-16 text-center">
           <GitBranch size={48} className="text-gray-300 mx-auto mb-4" />
-          <h3 className="font-semibold text-gray-700 mb-2">No family members yet</h3>
-          <p className="text-gray-400 mb-6">Start building your family tree by adding members.</p>
-          <button onClick={openAdd} className="btn-primary">Add First Member</button>
+          <h3 className="font-semibold text-gray-700 mb-2">{t('familyTree.noMembers')}</h3>
+          <p className="text-gray-400 mb-6">{t('familyTree.noMembersDesc')}</p>
+          <button onClick={openAdd} className="btn-primary">{t('familyTree.addFirst')}</button>
         </div>
       ) : (
         <>
           {/* Legend */}
           <div className="flex gap-4 mb-6 text-xs">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-blue-300" /> Male</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-300" /> Female</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-gray-300" /> Deceased</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-blue-300" /> {t('familyTree.male')}</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-300" /> {t('familyTree.female')}</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-gray-300" /> {t('familyTree.deceased')}</div>
           </div>
 
           {/* Tree */}
@@ -212,12 +214,12 @@ export default function FamilyTree() {
 
           {/* Table */}
           <div className="card mt-6 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 font-semibold text-gray-700">All Members</div>
+            <div className="p-4 border-b border-gray-100 font-semibold text-gray-700">{t('familyTree.all')}</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['Name', 'Relation', 'Gender', 'Birth Year', 'Notes', ''].map((h) => (
+                    {[t('familyTree.name'), t('familyTree.relation'), t('familyTree.gender'), t('familyTree.birthYear'), t('familyTree.notes'), ''].map((h) => (
                       <th key={h} className="text-left px-4 py-2.5 text-gray-500 font-medium">{h}</th>
                     ))}
                   </tr>
@@ -254,58 +256,58 @@ export default function FamilyTree() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-display font-semibold text-lg">{editing ? 'Edit Member' : 'Add Family Member'}</h3>
+              <h3 className="font-display font-semibold text-lg">{editing ? t('familyTree.editTitle') : t('familyTree.addTitle')}</h3>
               <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg">
                 <X size={18} />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="label">Name *</label>
+                <label className="label">{t('familyTree.nameField')}</label>
                 <input className="input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Relation</label>
+                  <label className="label">{t('familyTree.relation')}</label>
                   <select className="input" value={form.relation} onChange={(e) => setForm((f) => ({ ...f, relation: e.target.value }))}>
                     {RELATIONS.map((r) => <option key={r}>{r}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="label">Gender</label>
+                  <label className="label">{t('familyTree.gender')}</label>
                   <select className="input" value={form.gender} onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
+                    <option value="male">{t('familyTree.male')}</option>
+                    <option value="female">{t('familyTree.female')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label">Birth Year</label>
-                  <input type="number" className="input" placeholder="e.g. 1950" value={form.birth_year} onChange={(e) => setForm((f) => ({ ...f, birth_year: e.target.value }))} />
+                  <label className="label">{t('familyTree.birthYear')}</label>
+                  <input type="number" className="input" placeholder={t('familyTree.birthYearPlaceholder')} value={form.birth_year} onChange={(e) => setForm((f) => ({ ...f, birth_year: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="label">Death Year</label>
-                  <input type="number" className="input" placeholder="Leave blank if alive" value={form.death_year} onChange={(e) => setForm((f) => ({ ...f, death_year: e.target.value }))} />
+                  <label className="label">{t('familyTree.deathYear')}</label>
+                  <input type="number" className="input" placeholder={t('familyTree.leaveBlankIfAlive')} value={form.death_year} onChange={(e) => setForm((f) => ({ ...f, death_year: e.target.value }))} />
                 </div>
               </div>
               <div>
-                <label className="label">Parent (connect to tree)</label>
+                <label className="label">{t('familyTree.parentField')}</label>
                 <select className="input" value={form.parent_id} onChange={(e) => setForm((f) => ({ ...f, parent_id: e.target.value }))}>
-                  <option value="">— None (root) —</option>
+                  <option value="">{t('familyTree.noParent')}</option>
                   {members.filter((m) => m.id !== editing?.id).map((m) => (
                     <option key={m.id} value={m.id}>{m.name} ({m.relation})</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="label">Notes</label>
+                <label className="label">{t('familyTree.notes')}</label>
                 <textarea className="input resize-none h-16" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
               </div>
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={handleSave} disabled={!form.name} className="btn-primary flex-1">
-                {editing ? 'Update' : 'Add Member'}
+                {editing ? t('familyTree.update') : t('familyTree.add')}
               </button>
-              <button onClick={() => setShowModal(false)} className="btn-outline">Cancel</button>
+              <button onClick={() => setShowModal(false)} className="btn-outline">{t('common.cancel')}</button>
             </div>
           </div>
         </div>

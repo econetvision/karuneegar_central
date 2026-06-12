@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Plus, MessageSquare, Eye, Clock, ChevronLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -24,6 +25,7 @@ interface Category {
 export default function ForumCategory() {
   const { catId } = useParams<{ catId: string }>();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [category, setCategory] = useState<Category | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,12 +69,12 @@ export default function ForumCategory() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
       <Link to="/forums" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-saffron-600 mb-6">
-        <ChevronLeft size={16} /> Back to Forums
+        <ChevronLeft size={16} /> {t('forums.backToForums')}
       </Link>
 
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="section-title">{category?.name || 'Forum'}</h1>
+          <h1 className="section-title">{category?.name || t('forums.title')}</h1>
           <p className="text-gray-500 mt-1">{category?.description}</p>
         </div>
         {user && (
@@ -80,32 +82,32 @@ export default function ForumCategory() {
             onClick={() => setShowForm(!showForm)}
             className="btn-primary flex items-center gap-2"
           >
-            <Plus size={16} /> New Thread
+            <Plus size={16} /> {t('forums.newThread')}
           </button>
         )}
       </div>
 
       {showForm && (
         <div className="card p-6 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-4">Start a New Discussion</h3>
+          <h3 className="font-semibold text-gray-800 mb-4">{t('forums.startDiscussion')}</h3>
           <div className="space-y-3">
             <input
               className="input"
-              placeholder="Thread title"
+              placeholder={t('forums.threadTitlePlaceholder')}
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
             />
             <textarea
               className="input min-h-[100px] resize-none"
-              placeholder="Share your thoughts, questions, or ideas…"
+              placeholder={t('forums.threadBodyPlaceholder')}
               value={newBody}
               onChange={(e) => setNewBody(e.target.value)}
             />
             <div className="flex gap-2">
               <button onClick={handlePost} disabled={posting || !newTitle || !newBody} className="btn-primary">
-                {posting ? 'Posting…' : 'Post Thread'}
+                {posting ? t('common.posting') : t('common.post')}
               </button>
-              <button onClick={() => setShowForm(false)} className="btn-outline">Cancel</button>
+              <button onClick={() => setShowForm(false)} className="btn-outline">{t('common.cancel')}</button>
             </div>
           </div>
         </div>
@@ -118,26 +120,26 @@ export default function ForumCategory() {
       ) : threads.length === 0 ? (
         <div className="card p-12 text-center">
           <MessageSquare size={40} className="text-gray-300 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-600 mb-1">No threads yet</h3>
-          <p className="text-gray-400 text-sm">Be the first to start a discussion!</p>
+          <h3 className="font-semibold text-gray-600 mb-1">{t('forums.noThreads')}</h3>
+          <p className="text-gray-400 text-sm">{t('forums.noThreadsDesc')}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {threads.map((t) => (
-            <Link key={t.id} to={`/forums/thread/${t.id}`} className="card flex gap-4 p-5 group">
+          {threads.map((thread) => (
+            <Link key={thread.id} to={`/forums/thread/${thread.id}`} className="card flex gap-4 p-5 group">
               <div className="w-10 h-10 rounded-xl bg-saffron-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <MessageSquare size={18} className="text-saffron-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-900 group-hover:text-saffron-700 transition-colors leading-snug">
-                  {t.title}
+                  {thread.title}
                 </h3>
-                <p className="text-sm text-gray-500 mt-0.5 truncate">{t.body.substring(0, 100)}</p>
+                <p className="text-sm text-gray-500 mt-0.5 truncate">{thread.body.substring(0, 100)}</p>
                 <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                  <span>by <span className="font-medium text-gray-600">{t.author_name || t.author_username}</span></span>
-                  <span className="flex items-center gap-1"><Clock size={11} /> {timeAgo(t.created_at)}</span>
-                  <span className="flex items-center gap-1"><Eye size={11} /> {t.views}</span>
-                  <span className="flex items-center gap-1"><MessageSquare size={11} /> {t.reply_count}</span>
+                  <span>{t('common.by')} <span className="font-medium text-gray-600">{thread.author_name || thread.author_username}</span></span>
+                  <span className="flex items-center gap-1"><Clock size={11} /> {timeAgo(thread.created_at)}</span>
+                  <span className="flex items-center gap-1"><Eye size={11} /> {thread.views}</span>
+                  <span className="flex items-center gap-1"><MessageSquare size={11} /> {thread.reply_count}</span>
                 </div>
               </div>
             </Link>

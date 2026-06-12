@@ -1,14 +1,24 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, User, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, X, User, LogOut, ChevronDown, Languages } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogoIcon } from './KarunegarLogo';
+import { useTranslation } from 'react-i18next';
+
+const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'ta', label: 'தமிழ்' },
+  { code: 'te', label: 'తెలుగు' },
+  { code: 'kn', label: 'ಕನ್ನಡ' },
+];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -16,15 +26,17 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { to: '/', label: 'Home' },
-    { to: '/members', label: 'Members' },
-    { to: '/family-tree', label: 'Family Tree' },
-    { to: '/forums', label: 'Forums' },
-    { to: '/businesses', label: 'Businesses' },
-    { to: '/matrimony', label: 'Matrimony' },
-    { to: '/scholarships', label: 'Scholarships' },
-    { to: '/about', label: 'About' },
+    { to: '/', label: t('nav.home') },
+    { to: '/members', label: t('nav.members') },
+    { to: '/family-tree', label: t('nav.familyTree') },
+    { to: '/forums', label: t('nav.forums') },
+    { to: '/businesses', label: t('nav.businesses') },
+    { to: '/matrimony', label: t('nav.matrimony') },
+    { to: '/scholarships', label: t('nav.scholarships') },
+    { to: '/about', label: t('nav.about') },
   ];
+
+  const currentLang = LANGUAGES.find((l) => l.code === i18n.language) ?? LANGUAGES[0];
 
   return (
     <nav className="bg-white border-b border-orange-100 sticky top-0 z-50 shadow-sm">
@@ -59,8 +71,38 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Auth */}
+          {/* Auth + Language */}
           <div className="hidden md:flex items-center gap-2">
+            {/* Language switcher */}
+            <div className="relative">
+              <button
+                onClick={() => setLangOpen(!langOpen)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-600 hover:text-saffron-600 hover:bg-saffron-50 transition-colors"
+                title="Switch language"
+              >
+                <Languages size={16} />
+                <span className="font-medium">{currentLang.label}</span>
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 mt-1 w-36 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        i18n.changeLanguage(lang.code);
+                        setLangOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-saffron-50 hover:text-saffron-600 ${
+                        i18n.language === lang.code ? 'text-saffron-600 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {user ? (
               <div className="relative">
                 <button
@@ -80,21 +122,21 @@ export default function Navbar() {
                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-saffron-50 hover:text-saffron-600"
                       onClick={() => setDropOpen(false)}
                     >
-                      <User size={15} /> My Profile
+                      <User size={15} /> {t('nav.myProfile')}
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
                     >
-                      <LogOut size={15} /> Logout
+                      <LogOut size={15} /> {t('nav.logout')}
                     </button>
                   </div>
                 )}
               </div>
             ) : (
               <>
-                <Link to="/login" className="btn-ghost text-sm">Login</Link>
-                <Link to="/register" className="btn-primary text-sm">Join Now</Link>
+                <Link to="/login" className="btn-ghost text-sm">{t('nav.login')}</Link>
+                <Link to="/register" className="btn-primary text-sm">{t('nav.joinNow')}</Link>
               </>
             )}
           </div>
@@ -124,16 +166,38 @@ export default function Navbar() {
               {l.label}
             </NavLink>
           ))}
+          {/* Mobile language switcher */}
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-400 px-3 pb-1">Language</p>
+            <div className="flex gap-2 flex-wrap px-1">
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    i18n.changeLanguage(lang.code);
+                    setOpen(false);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    i18n.language === lang.code
+                      ? 'bg-saffron-600 text-white border-saffron-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-saffron-400'
+                  }`}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="pt-2 border-t border-gray-100 flex gap-2">
             {user ? (
               <>
-                <Link to="/profile" className="btn-outline text-sm flex-1 text-center" onClick={() => setOpen(false)}>Profile</Link>
-                <button onClick={handleLogout} className="btn-ghost text-sm text-red-500 flex-1">Logout</button>
+                <Link to="/profile" className="btn-outline text-sm flex-1 text-center" onClick={() => setOpen(false)}>{t('nav.profile')}</Link>
+                <button onClick={handleLogout} className="btn-ghost text-sm text-red-500 flex-1">{t('nav.logout')}</button>
               </>
             ) : (
               <>
-                <Link to="/login" className="btn-outline text-sm flex-1 text-center" onClick={() => setOpen(false)}>Login</Link>
-                <Link to="/register" className="btn-primary text-sm flex-1 text-center" onClick={() => setOpen(false)}>Join</Link>
+                <Link to="/login" className="btn-outline text-sm flex-1 text-center" onClick={() => setOpen(false)}>{t('nav.login')}</Link>
+                <Link to="/register" className="btn-primary text-sm flex-1 text-center" onClick={() => setOpen(false)}>{t('nav.joinNow')}</Link>
               </>
             )}
           </div>

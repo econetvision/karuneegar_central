@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Users, Lock, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function VisibilityPrompt({ onDecision }: Props) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
 
   const decide = async (isPublic: boolean) => {
@@ -27,9 +29,9 @@ export default function VisibilityPrompt({ onDecision }: Props) {
           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Users size={32} className="text-white" />
           </div>
-          <h2 className="font-display font-bold text-2xl mb-2">Share Your Profile?</h2>
+          <h2 className="font-display font-bold text-2xl mb-2">{t('visibility.title')}</h2>
           <p className="text-white/85 text-sm leading-relaxed">
-            Help your community connect with you by making your profile visible in the member directory.
+            {t('visibility.subtitle')}
           </p>
         </div>
 
@@ -44,10 +46,8 @@ export default function VisibilityPrompt({ onDecision }: Props) {
               <CheckCircle2 size={20} className="text-saffron-600" />
             </div>
             <div>
-              <p className="font-semibold text-gray-900">Yes, share my profile</p>
-              <p className="text-sm text-gray-500 mt-0.5">
-                My name, occupation, location, and gothram will be visible to community members.
-              </p>
+              <p className="font-semibold text-gray-900">{t('visibility.yesShare')}</p>
+              <p className="text-sm text-gray-500 mt-0.5">{t('visibility.yesShareDesc')}</p>
             </div>
           </button>
 
@@ -60,16 +60,14 @@ export default function VisibilityPrompt({ onDecision }: Props) {
               <Lock size={20} className="text-gray-500" />
             </div>
             <div>
-              <p className="font-semibold text-gray-700">Keep it private</p>
-              <p className="text-sm text-gray-400 mt-0.5">
-                Only you can see your profile. You can change this anytime in Edit Profile.
-              </p>
+              <p className="font-semibold text-gray-700">{t('visibility.keepPrivate')}</p>
+              <p className="text-sm text-gray-400 mt-0.5">{t('visibility.keepPrivateDesc')}</p>
             </div>
           </button>
         </div>
 
         <p className="text-center text-xs text-gray-400 pb-5 px-6">
-          You can always change your preference later in <span className="font-medium">Edit Profile → Privacy</span>.
+          {t('visibility.changeNote')}
         </p>
       </div>
     </div>

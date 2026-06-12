@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, User, Globe, Lock, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function EditProfile() {
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     full_name: '', bio: '', phone: '', location: '',
     occupation: '', dob: '', native_place: '', gothram: '',
@@ -83,15 +85,15 @@ export default function EditProfile() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <h1 className="font-display font-bold text-2xl text-gray-900 mb-6">Edit Profile</h1>
+      <h1 className="font-display font-bold text-2xl text-gray-900 mb-6">{t('editProfile.title')}</h1>
 
       {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">{error}</div>}
-      {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">Profile saved! Redirecting…</div>}
+      {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">{t('editProfile.profileSaved')}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Photo */}
         <div className="card p-6">
-          <h2 className="font-semibold text-gray-800 mb-4">Profile Photo</h2>
+          <h2 className="font-semibold text-gray-800 mb-4">{t('editProfile.profilePhoto')}</h2>
           <div className="flex items-center gap-5">
             <div className="w-20 h-20 rounded-2xl bg-saffron-100 border-2 border-saffron-200 overflow-hidden flex items-center justify-center">
               {photoUrl ? (
@@ -103,12 +105,12 @@ export default function EditProfile() {
             <div className="flex flex-col sm:flex-row gap-2">
               <label className="btn-outline flex items-center gap-2 cursor-pointer">
                 <Upload size={16} />
-                {uploading ? 'Uploading…' : 'Upload Photo'}
+                {uploading ? t('editProfile.uploading') : t('editProfile.uploadPhoto')}
                 <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
               </label>
               <label className="btn-outline flex items-center gap-2 cursor-pointer">
                 <Camera size={16} />
-                Take Photo
+                {t('editProfile.takePhoto')}
                 <input type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
               </label>
             </div>
@@ -117,51 +119,51 @@ export default function EditProfile() {
 
         {/* Basic Info */}
         <div className="card p-6 space-y-4">
-          <h2 className="font-semibold text-gray-800">Basic Information</h2>
+          <h2 className="font-semibold text-gray-800">{t('editProfile.basicInfo')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">Full Name</label>
+              <label className="label">{t('editProfile.fullName')}</label>
               <input type="text" className="input" value={form.full_name} onChange={set('full_name')} />
             </div>
             <div>
-              <label className="label">Date of Birth</label>
+              <label className="label">{t('editProfile.dob')}</label>
               <input type="date" className="input" value={form.dob} onChange={set('dob')} />
             </div>
             <div>
-              <label className="label">Phone</label>
+              <label className="label">{t('editProfile.phone')}</label>
               <input type="tel" className="input" value={form.phone} onChange={set('phone')} />
             </div>
             <div>
-              <label className="label">Location</label>
-              <input type="text" className="input" placeholder="City, State" value={form.location} onChange={set('location')} />
+              <label className="label">{t('editProfile.location')}</label>
+              <input type="text" className="input" placeholder={t('editProfile.locationPlaceholder')} value={form.location} onChange={set('location')} />
             </div>
             <div>
-              <label className="label">Occupation Type</label>
+              <label className="label">{t('editProfile.occupationType')}</label>
               <select className="input" value={form.occupation} onChange={set('occupation') as any}>
-                <option value="">Select type…</option>
-                <option value="Self-Employed">Self-Employed</option>
-                <option value="Business">Business Owner</option>
-                <option value="Public">Public Sector</option>
-                <option value="Private">Private Sector</option>
+                <option value="">{t('editProfile.selectType')}</option>
+                <option value="Self-Employed">{t('editProfile.selfEmployed')}</option>
+                <option value="Business">{t('editProfile.business')}</option>
+                <option value="Public">{t('editProfile.public')}</option>
+                <option value="Private">{t('editProfile.private')}</option>
               </select>
             </div>
           </div>
           <div>
-            <label className="label">Bio</label>
-            <textarea className="input min-h-[90px] resize-none" value={form.bio} onChange={set('bio') as any} placeholder="Tell the community about yourself…" />
+            <label className="label">{t('editProfile.bio')}</label>
+            <textarea className="input min-h-[90px] resize-none" value={form.bio} onChange={set('bio') as any} placeholder={t('editProfile.bioPlaceholder')} />
           </div>
         </div>
 
         {/* Community Details */}
         <div className="card p-6 space-y-4">
-          <h2 className="font-semibold text-gray-800">Community Details</h2>
+          <h2 className="font-semibold text-gray-800">{t('editProfile.communityDetails')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">Native Place</label>
+              <label className="label">{t('editProfile.nativePlaceLabel')}</label>
               <input type="text" className="input" value={form.native_place} onChange={set('native_place')} />
             </div>
             <div>
-              <label className="label">Gothram</label>
+              <label className="label">{t('editProfile.gothramLabel')}</label>
               <input type="text" className="input" value={form.gothram} onChange={set('gothram')} />
             </div>
           </div>
@@ -171,24 +173,24 @@ export default function EditProfile() {
         <div className="card p-6 space-y-4">
           <div className="flex items-center gap-2">
             <Star size={16} className="text-amber-500 fill-amber-400" />
-            <h2 className="font-semibold text-gray-800">Achievements &amp; Recognition</h2>
+            <h2 className="font-semibold text-gray-800">{t('editProfile.achievementsTitle')}</h2>
           </div>
           <div>
-            <label className="label">Notable Achievements</label>
+            <label className="label">{t('editProfile.achievementsLabel')}</label>
             <textarea
               className="input min-h-[90px] resize-none"
-              placeholder="Describe your key achievements, entrepreneurial ventures, or contributions to the community…"
+              placeholder={t('editProfile.achievementsPlaceholder')}
               value={form.achievements}
               onChange={set('achievements') as any}
             />
-            <p className="text-xs text-gray-400 mt-1">This will be shown on your profile and in the Prominent Figures section.</p>
+            <p className="text-xs text-gray-400 mt-1">{t('editProfile.achievementsHint')}</p>
           </div>
           <div>
             <label className="label flex items-center gap-1.5">
-              <Star size={13} className="text-amber-500 fill-amber-400" /> Prominent Figure
+              <Star size={13} className="text-amber-500 fill-amber-400" /> {t('editProfile.prominentLabel')}
             </label>
             <p className="text-xs text-gray-400 mb-3">
-              For members aged 50+ who are established entrepreneurs or prominent figures in their profession.
+              {t('editProfile.prominentDesc')}
             </p>
             <div className="flex gap-3">
               <button
@@ -199,8 +201,8 @@ export default function EditProfile() {
               >
                 <Star size={15} className={isProminent ? 'text-amber-500 fill-amber-400' : 'text-gray-400'} />
                 <div>
-                  <p className={`font-medium text-sm ${isProminent ? 'text-amber-700' : 'text-gray-700'}`}>Yes, I am</p>
-                  <p className="text-xs text-gray-400">Feature me in Prominent Figures</p>
+                  <p className={`font-medium text-sm ${isProminent ? 'text-amber-700' : 'text-gray-700'}`}>{t('editProfile.prominentYes')}</p>
+                  <p className="text-xs text-gray-400">{t('editProfile.prominentYesDesc')}</p>
                 </div>
               </button>
               <button
@@ -211,8 +213,8 @@ export default function EditProfile() {
               >
                 <User size={15} className={!isProminent ? 'text-gray-600' : 'text-gray-400'} />
                 <div>
-                  <p className="font-medium text-sm text-gray-700">Not applicable</p>
-                  <p className="text-xs text-gray-400">Don't feature me</p>
+                  <p className="font-medium text-sm text-gray-700">{t('editProfile.prominentNo')}</p>
+                  <p className="text-xs text-gray-400">{t('editProfile.prominentNoDesc')}</p>
                 </div>
               </button>
             </div>
@@ -221,22 +223,22 @@ export default function EditProfile() {
 
         {/* Links */}
         <div className="card p-6 space-y-4">
-          <h2 className="font-semibold text-gray-800">Links</h2>
+          <h2 className="font-semibold text-gray-800">{t('editProfile.linksTitle')}</h2>
           <div>
-            <label className="label">LinkedIn URL</label>
-            <input type="url" className="input" placeholder="https://linkedin.com/in/..." value={form.linkedin} onChange={set('linkedin')} />
+            <label className="label">{t('editProfile.linkedInUrl')}</label>
+            <input type="url" className="input" placeholder={t('editProfile.linkedInPlaceholder')} value={form.linkedin} onChange={set('linkedin')} />
           </div>
           <div>
-            <label className="label">Website</label>
-            <input type="url" className="input" placeholder="https://yourwebsite.com" value={form.website} onChange={set('website')} />
+            <label className="label">{t('editProfile.websiteUrl')}</label>
+            <input type="url" className="input" placeholder={t('editProfile.websitePlaceholder')} value={form.website} onChange={set('website')} />
           </div>
         </div>
 
         {/* Privacy */}
         <div className="card p-6 space-y-5">
           <div>
-            <h2 className="font-semibold text-gray-800 mb-1">Profile Visibility</h2>
-            <p className="text-sm text-gray-400 mb-4">Control whether your profile is visible in the community directory.</p>
+            <h2 className="font-semibold text-gray-800 mb-1">{t('editProfile.privacy')}</h2>
+            <p className="text-sm text-gray-400 mb-4">{t('editProfile.privacyDesc')}</p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
@@ -246,8 +248,8 @@ export default function EditProfile() {
               >
                 <Globe size={18} className={isPublic === true ? 'text-green-600' : 'text-gray-400'} />
                 <div>
-                  <p className={`font-medium text-sm ${isPublic === true ? 'text-green-700' : 'text-gray-700'}`}>Public</p>
-                  <p className="text-xs text-gray-400">Visible in member directory</p>
+                  <p className={`font-medium text-sm ${isPublic === true ? 'text-green-700' : 'text-gray-700'}`}>{t('editProfile.publicOption')}</p>
+                  <p className="text-xs text-gray-400">{t('editProfile.publicOptionDesc')}</p>
                 </div>
               </button>
               <button
@@ -258,16 +260,16 @@ export default function EditProfile() {
               >
                 <Lock size={18} className={isPublic === false ? 'text-gray-600' : 'text-gray-400'} />
                 <div>
-                  <p className={`font-medium text-sm ${isPublic === false ? 'text-gray-700' : 'text-gray-700'}`}>Private</p>
-                  <p className="text-xs text-gray-400">Only visible to you</p>
+                  <p className={`font-medium text-sm ${isPublic === false ? 'text-gray-700' : 'text-gray-700'}`}>{t('editProfile.privateOption')}</p>
+                  <p className="text-xs text-gray-400">{t('editProfile.privateOptionDesc')}</p>
                 </div>
               </button>
             </div>
           </div>
 
           <div className="border-t border-gray-100 pt-5">
-            <h2 className="font-semibold text-gray-800 mb-1">Mobile Number Visibility</h2>
-            <p className="text-sm text-gray-400 mb-3">Choose whether other members can see your verified mobile number.</p>
+            <h2 className="font-semibold text-gray-800 mb-1">{t('editProfile.mobileVisibility')}</h2>
+            <p className="text-sm text-gray-400 mb-3">{t('editProfile.mobileVisibilityDesc')}</p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
@@ -277,8 +279,8 @@ export default function EditProfile() {
               >
                 <Globe size={18} className={mobilePublic ? 'text-green-600' : 'text-gray-400'} />
                 <div>
-                  <p className={`font-medium text-sm ${mobilePublic ? 'text-green-700' : 'text-gray-700'}`}>Show Number</p>
-                  <p className="text-xs text-gray-400">Full number visible to members</p>
+                  <p className={`font-medium text-sm ${mobilePublic ? 'text-green-700' : 'text-gray-700'}`}>{t('editProfile.showNumber')}</p>
+                  <p className="text-xs text-gray-400">{t('editProfile.showNumberDesc')}</p>
                 </div>
               </button>
               <button
@@ -289,8 +291,8 @@ export default function EditProfile() {
               >
                 <Lock size={18} className={!mobilePublic ? 'text-gray-600' : 'text-gray-400'} />
                 <div>
-                  <p className="font-medium text-sm text-gray-700">Hide Number</p>
-                  <p className="text-xs text-gray-400">Number masked from other members</p>
+                  <p className="font-medium text-sm text-gray-700">{t('editProfile.hideNumber')}</p>
+                  <p className="text-xs text-gray-400">{t('editProfile.hideNumberDesc')}</p>
                 </div>
               </button>
             </div>
@@ -299,10 +301,10 @@ export default function EditProfile() {
 
         <div className="flex gap-3">
           <button type="submit" disabled={saving} className="btn-primary flex-1">
-            {saving ? 'Saving…' : 'Save Profile'}
+            {saving ? t('common.saving') : t('editProfile.saveProfile')}
           </button>
           <button type="button" onClick={() => navigate('/profile')} className="btn-outline">
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </form>

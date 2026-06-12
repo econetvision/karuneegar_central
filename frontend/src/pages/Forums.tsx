@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Briefcase, Users, Home, BookOpen, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 
 interface Category {
@@ -29,6 +30,7 @@ const colorMap = [
 ];
 
 export default function Forums() {
+  const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,9 +44,9 @@ export default function Forums() {
     <div className="max-w-4xl mx-auto px-4 py-10">
       <div className="mb-8">
         <h1 className="section-title flex items-center gap-2 mb-2">
-          <MessageSquare className="text-saffron-600" size={28} /> Business Forums
+          <MessageSquare className="text-saffron-600" size={28} /> {t('forums.title')}
         </h1>
-        <p className="text-gray-500">Discuss, collaborate, and grow with the community.</p>
+        <p className="text-gray-500">{t('forums.subtitle')}</p>
       </div>
 
       {loading ? (
@@ -68,8 +70,8 @@ export default function Forums() {
                 </h3>
                 <p className="text-sm text-gray-600 mt-0.5 truncate">{cat.description}</p>
                 <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                  <span>{cat.thread_count} threads</span>
-                  <span>{cat.reply_count} replies</span>
+                  <span>{t('forums.threads', { count: cat.thread_count })}</span>
+                  <span>{t('forums.replies', { count: cat.reply_count })}</span>
                 </div>
               </div>
               <ChevronRight size={18} className="text-gray-400 flex-shrink-0" />

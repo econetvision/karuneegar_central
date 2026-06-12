@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Search, MapPin, Tag, Users, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 
 interface Business {
@@ -25,6 +26,7 @@ const CATEGORIES = [
 ];
 
 export default function Businesses() {
+  const { t } = useTranslation();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -50,9 +52,9 @@ export default function Businesses() {
     <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="mb-8">
         <h1 className="section-title flex items-center gap-2 mb-2">
-          <Building2 className="text-saffron-600" size={28} /> Community Businesses
+          <Building2 className="text-saffron-600" size={28} /> {t('businesses.title')}
         </h1>
-        <p className="text-gray-500">Discover businesses run by Karuneegar community members.</p>
+        <p className="text-gray-500">{t('businesses.subtitle')}</p>
       </div>
 
       {/* Filters */}
@@ -61,7 +63,7 @@ export default function Businesses() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search businesses…"
+            placeholder={t('businesses.searchPlaceholder')}
             className="input pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -72,7 +74,7 @@ export default function Businesses() {
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
-          <option value="">All Categories</option>
+          <option value="">{t('businesses.allCategories')}</option>
           {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
       </div>
@@ -84,8 +86,8 @@ export default function Businesses() {
       ) : businesses.length === 0 ? (
         <div className="card p-16 text-center">
           <Building2 size={48} className="text-gray-200 mx-auto mb-4" />
-          <h3 className="font-semibold text-gray-600 mb-2">No businesses found</h3>
-          <p className="text-gray-400 text-sm">Set your occupation to Business or Self-Employed and create a business profile.</p>
+          <h3 className="font-semibold text-gray-600 mb-2">{t('businesses.noBusinesses')}</h3>
+          <p className="text-gray-400 text-sm">{t('businesses.noBusinessesDesc')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -125,7 +127,7 @@ export default function Businesses() {
                     )}
                   </div>
                   {b.owner_name && (
-                    <p className="text-xs text-gray-400 mt-1.5">by {b.owner_name}</p>
+                    <p className="text-xs text-gray-400 mt-1.5">{t('businesses.byLabel')} {b.owner_name}</p>
                   )}
                 </div>
                 <ArrowRight size={15} className="text-gray-300 group-hover:text-saffron-500 transition-colors self-center flex-shrink-0" />

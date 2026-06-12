@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, Send, User, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -28,6 +29,7 @@ interface Thread {
 export default function ForumThread() {
   const { threadId } = useParams<{ threadId: string }>();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [thread, setThread] = useState<Thread | null>(null);
   const [loading, setLoading] = useState(true);
   const [replyBody, setReplyBody] = useState('');
@@ -69,12 +71,12 @@ export default function ForumThread() {
     );
   }
 
-  if (!thread) return <div className="text-center py-20 text-gray-500">Thread not found.</div>;
+  if (!thread) return <div className="text-center py-20 text-gray-500">{t('forums.threadNotFound')}</div>;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       <Link to={`/forums/${thread.category_id}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-saffron-600 mb-6">
-        <ChevronLeft size={16} /> Back to Forum
+        <ChevronLeft size={16} /> {t('forums.backToForums')}
       </Link>
 
       {/* OP */}
@@ -95,19 +97,19 @@ export default function ForumThread() {
       {/* Replies */}
       {thread.replies.length > 0 && (
         <div className="space-y-4 mb-6">
-          <h3 className="font-semibold text-gray-700 text-sm">{thread.replies.length} Replies</h3>
-          {thread.replies.map((r) => (
-            <div key={r.id} className="card p-5">
+          <h3 className="font-semibold text-gray-700 text-sm">{t('forums.repliesCount', { count: thread.replies.length })}</h3>
+          {thread.replies.map((reply) => (
+            <div key={reply.id} className="card p-5">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                   <User size={14} className="text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm text-gray-800">{r.author_name || r.author_username}</p>
-                  <p className="text-xs text-gray-400">{timeAgo(r.created_at)}</p>
+                  <p className="font-medium text-sm text-gray-800">{reply.author_name || reply.author_username}</p>
+                  <p className="text-xs text-gray-400">{timeAgo(reply.created_at)}</p>
                 </div>
               </div>
-              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{r.body}</p>
+              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{reply.body}</p>
             </div>
           ))}
         </div>
@@ -116,10 +118,10 @@ export default function ForumThread() {
       {/* Reply box */}
       {user ? (
         <div className="card p-5">
-          <h3 className="font-semibold text-gray-700 mb-3 text-sm">Add Your Reply</h3>
+          <h3 className="font-semibold text-gray-700 mb-3 text-sm">{t('forums.addReply')}</h3>
           <textarea
             className="input min-h-[90px] resize-none text-sm"
-            placeholder="Write your reply…"
+            placeholder={t('forums.replyPlaceholder')}
             value={replyBody}
             onChange={(e) => setReplyBody(e.target.value)}
           />
@@ -128,12 +130,12 @@ export default function ForumThread() {
             disabled={posting || !replyBody.trim()}
             className="btn-primary mt-3 flex items-center gap-2"
           >
-            <Send size={15} /> {posting ? 'Posting…' : 'Post Reply'}
+            <Send size={15} /> {posting ? t('common.posting') : t('forums.postReply')}
           </button>
         </div>
       ) : (
         <div className="card p-5 text-center text-sm text-gray-500">
-          <Link to="/login" className="text-saffron-600 font-medium hover:underline">Login</Link> to post a reply.
+          <Link to="/login" className="text-saffron-600 font-medium hover:underline">{t('nav.login')}</Link> {t('forums.loginToReply')}
         </div>
       )}
     </div>

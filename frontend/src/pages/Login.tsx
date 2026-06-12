@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -33,8 +35,8 @@ export default function Login() {
               K
             </div>
           </Link>
-          <h1 className="font-display font-bold text-2xl text-gray-900">Welcome back</h1>
-          <p className="text-gray-500 mt-1">Sign in to Karuneegar Central</p>
+          <h1 className="font-display font-bold text-2xl text-gray-900">{t('auth.welcomeBack')}</h1>
+          <p className="text-gray-500 mt-1">{t('auth.signInSubtitle')}</p>
         </div>
 
         <div className="card p-8">
@@ -45,22 +47,22 @@ export default function Login() {
           )}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="label">Email or Username</label>
+              <label className="label">{t('auth.emailOrUsername')}</label>
               <input
                 type="text"
                 className="input"
-                placeholder="Enter email or username"
+                placeholder={t('auth.emailPlaceholder')}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </div>
             <div>
-              <label className="label">Password</label>
+              <label className="label">{t('auth.password')}</label>
               <input
                 type="password"
                 className="input"
-                placeholder="Enter password"
+                placeholder={t('auth.passwordPlaceholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -71,15 +73,15 @@ export default function Login() {
               disabled={loading}
               className="btn-primary w-full text-center justify-center flex"
             >
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? t('auth.signingIn') : t('auth.signIn')}
             </button>
           </form>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          New to Karuneegar Central?{' '}
+          {t('auth.newHere')}{' '}
           <Link to="/register" className="text-saffron-600 font-medium hover:underline">
-            Create an account
+            {t('auth.createAccount')}
           </Link>
         </p>
       </div>

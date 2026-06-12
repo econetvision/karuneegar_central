@@ -4,6 +4,7 @@ import {
   MapPin, Briefcase, Calendar, Phone, ExternalLink,
   Edit2, User, Building2, PlusCircle, ArrowRight, Globe, Lock,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import VisibilityPrompt from '../components/VisibilityPrompt';
@@ -46,6 +47,7 @@ function InfoChip({ icon, text }: { icon: React.ReactNode; text: string }) {
 export default function Profile() {
   const { username } = useParams();
   const { user: authUser } = useAuth();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [userData, setUserData] = useState<any>(null);
   const [business, setBusiness] = useState<BusinessData | null | undefined>(undefined);
@@ -90,8 +92,8 @@ export default function Profile() {
         <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
           <Lock size={28} className="text-gray-400" />
         </div>
-        <h2 className="font-display font-bold text-xl text-gray-800 mb-2">Private Profile</h2>
-        <p className="text-gray-500">This member has chosen to keep their profile private.</p>
+        <h2 className="font-display font-bold text-xl text-gray-800 mb-2">{t('profile.privateProfile')}</h2>
+        <p className="text-gray-500">{t('profile.privateProfileMsg')}</p>
       </div>
     );
   }
@@ -119,7 +121,7 @@ export default function Profile() {
             {/* Edit button — absolute top-right, never competes with text */}
             {isOwn && (
               <Link to="/profile/edit" className="btn-outline flex items-center gap-2 absolute top-4 right-5 sm:right-6 text-sm">
-                <Edit2 size={14} /> Edit
+                <Edit2 size={14} /> {t('profile.edit')}
               </Link>
             )}
 
@@ -149,8 +151,8 @@ export default function Profile() {
                       ${profile.is_public ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
                   >
                     {profile.is_public
-                      ? <><Globe size={10} /> Public</>
-                      : <><Lock size={10} /> Private</>}
+                      ? <><Globe size={10} /> {t('profile.publicBadge')}</>
+                      : <><Lock size={10} /> {t('profile.privateBadge')}</>}
                   </button>
                 )}
               </div>
@@ -176,9 +178,9 @@ export default function Profile() {
           <div className="md:col-span-2 space-y-6">
             {/* Community Details */}
             <div className="card p-6">
-              <h2 className="font-display font-semibold text-lg text-gray-900 mb-4">Community Details</h2>
+              <h2 className="font-display font-semibold text-lg text-gray-900 mb-4">{t('profile.communityDetails')}</h2>
               <dl className="space-y-3">
-                {([['Native Place', profile?.native_place], ['Gothram', profile?.gothram]] as [string, string | undefined][])
+                {([[t('profile.nativePlaceLabel'), profile?.native_place], [t('profile.gothramLabel'), profile?.gothram]] as [string, string | undefined][])
                   .filter(([, v]) => v)
                   .map(([label, val]) => (
                     <div key={label} className="flex gap-3">
@@ -188,7 +190,7 @@ export default function Profile() {
                   ))}
               </dl>
               {!profile?.native_place && !profile?.gothram && (
-                <p className="text-gray-400 text-sm">No community details added yet.</p>
+                <p className="text-gray-400 text-sm">{t('profile.noCommunityDetails')}</p>
               )}
             </div>
 
@@ -197,11 +199,11 @@ export default function Profile() {
               <div className="card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-display font-semibold text-lg text-gray-900 flex items-center gap-2">
-                    <Building2 size={20} className="text-saffron-600" /> Business Profile
+                    <Building2 size={20} className="text-saffron-600" /> {t('profile.businessProfileTitle')}
                   </h2>
                   {isOwn && business && (
                     <Link to="/business/edit" className="text-sm text-saffron-600 hover:underline flex items-center gap-1">
-                      <Edit2 size={13} /> Edit
+                      <Edit2 size={13} /> {t('profile.edit')}
                     </Link>
                   )}
                 </div>
@@ -215,15 +217,15 @@ export default function Profile() {
                 {business === null && isOwn && (
                   <div className="border-2 border-dashed border-saffron-200 rounded-xl p-6 text-center">
                     <Building2 size={32} className="text-saffron-300 mx-auto mb-2" />
-                    <p className="text-gray-500 text-sm mb-4">You haven't created a business profile yet.</p>
+                    <p className="text-gray-500 text-sm mb-4">{t('profile.noBusinessYet')}</p>
                     <Link to="/business/edit" className="btn-primary flex items-center gap-2 justify-center">
-                      <PlusCircle size={16} /> Create Business Profile
+                      <PlusCircle size={16} /> {t('profile.createBusiness')}
                     </Link>
                   </div>
                 )}
 
                 {business === null && !isOwn && (
-                  <p className="text-gray-400 text-sm">No business profile yet.</p>
+                  <p className="text-gray-400 text-sm">{t('profile.noBusinessOther')}</p>
                 )}
 
                 {business && (
@@ -264,32 +266,32 @@ export default function Profile() {
 
           {/* Right column — Links + Quick links */}
           <div className="card p-6 self-start">
-            <h2 className="font-display font-semibold text-lg text-gray-900 mb-4">Links</h2>
+            <h2 className="font-display font-semibold text-lg text-gray-900 mb-4">{t('profile.linksTitle')}</h2>
             <div className="space-y-3">
               {profile?.linkedin && (
                 <a href={profile.linkedin} target="_blank" rel="noreferrer"
                   className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
-                  <ExternalLink size={14} /> LinkedIn
+                  <ExternalLink size={14} /> {t('profile.linkedIn')}
                 </a>
               )}
               {profile?.website && (
                 <a href={profile.website} target="_blank" rel="noreferrer"
                   className="flex items-center gap-2 text-sm text-saffron-600 hover:underline">
-                  <ExternalLink size={14} /> Website
+                  <ExternalLink size={14} /> {t('profile.website')}
                 </a>
               )}
               {!profile?.linkedin && !profile?.website && (
-                <p className="text-gray-400 text-sm">No links added.</p>
+                <p className="text-gray-400 text-sm">{t('profile.noLinks')}</p>
               )}
             </div>
 
             {isOwn && (
               <div className="mt-5 pt-5 border-t border-gray-100 space-y-2">
-                <p className="text-xs text-gray-400 mb-2">Quick links</p>
-                <Link to="/family-tree" className="block text-sm text-saffron-600 hover:underline">→ My Family Tree</Link>
-                <Link to="/matrimony/create" className="block text-sm text-saffron-600 hover:underline">→ Matrimony Profile</Link>
+                <p className="text-xs text-gray-400 mb-2">{t('profile.quickLinks')}</p>
+                <Link to="/family-tree" className="block text-sm text-saffron-600 hover:underline">{t('profile.myFamilyTree')}</Link>
+                <Link to="/matrimony/create" className="block text-sm text-saffron-600 hover:underline">{t('profile.matrimonyProfile')}</Link>
                 {isBizOccupation && (
-                  <Link to="/business/edit" className="block text-sm text-saffron-600 hover:underline">→ Business Profile</Link>
+                  <Link to="/business/edit" className="block text-sm text-saffron-600 hover:underline">{t('profile.businessProfile')}</Link>
                 )}
               </div>
             )}
