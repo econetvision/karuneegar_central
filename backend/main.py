@@ -31,36 +31,42 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def _register_cors(app):
     """Manual CORS — works on all responses including 500s, no third-party dependency quirks."""
-    allowed_env = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:3000')
-    allowed_list = [o.strip() for o in allowed_env.split(',') if o.strip()]
+    _DEFAULT_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://karuneegar-central.vercel.app'
+    allowed_env = os.environ.get('ALLOWED_ORIGINS', _DEFAULT_ORIGINS)
+    allowed_list = [o.strip().rstrip('/') for o in allowed_env.split(',') if o.strip()]
 
-    @app.after_request
-    def _add_cors_headers(response):
-        origin = request.headers.get('Origin', '')
+    def _apply_cors(response):
+        origin = request.headers.get('Origin', '').rstrip('/')
         if origin in allowed_list:
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers.add('Vary', 'Origin')
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
         response.headers['Access-Control-Max-Age'] = '600'
         return response
 
+    @app.after_request
+    def _add_cors_headers(response):
+        return _apply_cors(response)
+
     @app.route('/api/<path:path>', methods=['OPTIONS'])
     def _preflight(path):           # noqa: F811
-        return '', 204
+        resp = app.make_response(('', 204))
+        return _apply_cors(resp)
 
     @app.errorhandler(Exception)
     def _handle_unhandled(e):
-        """Catch-all: convert unhandled exceptions to JSON and add CORS headers.
+        """Catch-all: convert unhandled exceptions to JSON + CORS.
         after_request does NOT run when an exception escapes, so we do it here."""
         from werkzeug.exceptions import HTTPException
         if isinstance(e, HTTPException):
-            return e
+            return _apply_cors(e.get_response())
         import traceback
         app.logger.error(traceback.format_exc())
         response = jsonify({'error': 'Internal server error'})
         response.status_code = 500
-        return response
+        return _apply_cors(response)
 
 
 def create_app():
