@@ -6,10 +6,12 @@ db = SQLAlchemy()
 
 
 def _mask_mobile(mobile: str):
-    """Show country code + first few digits, mask the rest with *."""
+    """Show first few digits, mask at least 5 trailing chars with *."""
     if not mobile:
         return None
-    visible = min(8, max(4, len(mobile) - 5))
+    if len(mobile) <= 6:
+        return '*' * len(mobile)
+    visible = min(6, len(mobile) - 5)
     return mobile[:visible] + '*' * (len(mobile) - visible)
 
 

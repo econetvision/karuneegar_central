@@ -92,9 +92,15 @@ export default function MatrimonyView() {
                 </a>
               )}
               {profile.contact_phone && (
-                <a href={`tel:${profile.contact_phone}`} className="flex items-center gap-2 text-sm text-saffron-600 hover:underline">
-                  <Phone size={14} /> {profile.contact_phone}
-                </a>
+                profile.phone_public ? (
+                  <a href={`tel:${profile.contact_phone}`} className="flex items-center gap-2 text-sm text-saffron-600 hover:underline">
+                    <Phone size={14} /> {profile.contact_phone}
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Lock size={14} /> {profile.contact_phone}
+                  </div>
+                )
               )}
               {!profile.contact_email && !profile.contact_phone && (
                 <p className="text-gray-400 text-sm">Contact info not provided.</p>

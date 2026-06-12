@@ -294,7 +294,7 @@ def update_profile():
         user.mobile_public = bool(data['mobile_public'])
 
     db.session.commit()
-    return jsonify({'profile': user.profile.to_dict()})
+    return jsonify({'user': user.to_dict(full=True), 'profile': user.profile.to_dict()})
 
 
 @app.route('/api/profile/mobile-visibility', methods=['PATCH'])
@@ -527,7 +527,7 @@ def create_matrimony_profile():
     })
     db.session.add(profile)
     db.session.commit()
-    return jsonify({'profile': profile.to_dict()}), 201
+    return jsonify({'profile': profile.to_dict(full=True)}), 201
 
 
 @app.route('/api/matrimony/<int:profile_id>', methods=['GET'])
@@ -546,12 +546,14 @@ def update_matrimony_profile(profile_id):
     for f in ['full_name', 'gender', 'seeking', 'age', 'height', 'education',
               'occupation', 'salary_range', 'gothram', 'native_place', 'star',
               'raasi', 'about', 'photo_filename', 'contact_email', 'contact_phone',
-              'phone_public', 'active']:
+              'active']:
         if f in data:
             setattr(profile, f, data[f])
+    if 'phone_public' in data:
+        profile.phone_public = bool(data['phone_public'])
 
     db.session.commit()
-    return jsonify({'profile': profile.to_dict()})
+    return jsonify({'profile': profile.to_dict(full=True)})
 
 
 @app.route('/api/matrimony/<int:profile_id>', methods=['DELETE'])

@@ -7,6 +7,8 @@ interface User {
   username: string;
   email: string;
   is_admin: boolean;
+  mobile: string | null;
+  mobile_public: boolean;
 }
 
 interface AuthContextType {
@@ -15,6 +17,7 @@ interface AuthContextType {
   login: (identifier: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string, full_name: string, mobile: string, otp_code: string, mobile_public: boolean) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -52,8 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const r = await api.get('/auth/me');
+    setUser(r.data.user);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

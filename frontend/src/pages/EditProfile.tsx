@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, User, Globe, Lock } from 'lucide-react';
 import api from '../api/client';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function EditProfile() {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [form, setForm] = useState({
     full_name: '', bio: '', phone: '', location: '',
     occupation: '', dob: '', native_place: '', gothram: '',
@@ -64,6 +66,7 @@ export default function EditProfile() {
     setError('');
     try {
       await api.put('/profile', { ...form, photo_filename: photoFilename, is_public: isPublic, mobile_public: mobilePublic });
+      await refreshUser();
       setSuccess(true);
       setTimeout(() => navigate('/profile'), 1200);
     } catch (err: any) {
