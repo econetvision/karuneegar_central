@@ -13,10 +13,10 @@ with app.app_context():
             conn.execute(text('ALTER TABLE "user" ADD COLUMN mobile VARCHAR(20)'))
             print('  + user.mobile')
         if 'mobile_verified' not in user_cols:
-            conn.execute(text('ALTER TABLE "user" ADD COLUMN mobile_verified BOOLEAN DEFAULT 0'))
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN mobile_verified BOOLEAN DEFAULT false'))
             print('  + user.mobile_verified')
         if 'mobile_public' not in user_cols:
-            conn.execute(text('ALTER TABLE "user" ADD COLUMN mobile_public BOOLEAN DEFAULT 0'))
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN mobile_public BOOLEAN DEFAULT false'))
             print('  + user.mobile_public')
         # ── profile table ────────────────────────────────────────────────────
         profile_cols = {c['name'] for c in insp.get_columns('profile')}
@@ -26,7 +26,7 @@ with app.app_context():
         # ── matrimony_profile table ──────────────────────────────────────────
         matrimony_cols = {c['name'] for c in insp.get_columns('matrimony_profile')}
         if 'phone_public' not in matrimony_cols:
-            conn.execute(text('ALTER TABLE matrimony_profile ADD COLUMN phone_public BOOLEAN DEFAULT 0'))
+            conn.execute(text('ALTER TABLE matrimony_profile ADD COLUMN phone_public BOOLEAN DEFAULT false'))
             print('  + matrimony_profile.phone_public')
         conn.commit()
 
