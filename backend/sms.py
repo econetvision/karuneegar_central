@@ -16,18 +16,15 @@ def generate_otp() -> str:
 
 
 def send_otp_sms(mobile: str, otp: str) -> bool:
-    """Send OTP via SMS. If SMS fails, fall back to WhatsApp."""
+    """Send OTP via SMS only. WhatsApp fallback is intentionally disabled —
+    2Factor.in delivers via voice IVR when WhatsApp is not activated, which
+    is worse than a clean failure."""
     if os.environ.get('MOCK_SMS', 'false').lower() == 'true':
         logger.warning('MOCK SMS | mobile=%s otp=<redacted>', mobile)
         print(f'\n{"="*40}\nMOCK SMS  ->  {mobile}\nOTP CODE  ->  {otp}\n{"="*40}\n', flush=True)
         return True
 
-    sms_ok = _send_sms(mobile, otp)
-    if sms_ok:
-        return True
-
-    logger.warning('SMS delivery failed for %s — trying WhatsApp fallback', mobile)
-    return _send_whatsapp(mobile, otp)
+    return _send_sms(mobile, otp)
 
 
 # ── SMS delivery ──────────────────────────────────────────────────────────────
@@ -89,9 +86,9 @@ def _twofactor_sms(mobile: str, otp: str) -> bool:
     If you have a DLT-registered template, set TWOFACTOR_SMS_TEMPLATE to its
     name and the URL becomes .../SMS/{number}/{otp}/{template}.
     """
-    api_key = os.environ.get('TWOFACTOR_API_KEY')
+    api_key = os.environ.get('TWOFACTOR_API_KEY', '').strip()
     if not api_key:
-        logger.error('2Factor: TWOFACTOR_API_KEY env var is MISSING')
+        logger.error('2Factor: TWOFACTOR_API_KEY env var is MISSING — SMS cannot be sent')
         return False
 
     number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
@@ -99,7 +96,7 @@ def _twofactor_sms(mobile: str, otp: str) -> bool:
 
     if template:
         url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}/{template}'
-        logger.info('2Factor SMS (template=%s): number=%s', template, number)
+        logger.info('2Factor SMS (template=%r): number=%s', template, number)
     else:
         url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/{otp}'
         logger.info('2Factor SMS (no template): number=%s', number)
@@ -107,17 +104,24 @@ def _twofactor_sms(mobile: str, otp: str) -> bool:
     try:
         with urllib.request.urlopen(urllib.request.Request(url), timeout=10) as resp:
             body = json.loads(resp.read())
-            logger.info('2Factor SMS response: %s', body)
-            if body.get('Status') == 'Success':
+            status = body.get('Status', '')
+            details = body.get('Details', '')
+            logger.info('2Factor SMS response: Status=%r Details=%r full=%s', status, details, body)
+            if status == 'Success':
+                logger.info('2Factor SMS queued successfully for %s', number)
                 return True
-            logger.error('2Factor SMS failed — Status=%s Details=%s', body.get('Status'), body.get('Details'))
+            logger.error(
+                'TWOFACTOR SMS FAILED — Status=%r Details=%r '
+                '(if Details contains "DLT" or "template", set TWOFACTOR_SMS_TEMPLATE env var)',
+                status, details,
+            )
             return False
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode('utf-8', errors='replace')
-        logger.error('2Factor SMS HTTP %s: %s', exc.code, raw)
+        logger.error('2Factor SMS HTTP error %s: %s', exc.code, raw)
         return False
     except Exception as exc:
-        logger.error('2Factor SMS error: %s', exc)
+        logger.error('2Factor SMS unexpected error: %s', exc)
         return False
 
 
