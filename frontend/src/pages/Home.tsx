@@ -78,10 +78,10 @@ export default function Home() {
               {t('home.joinCommunity')} <ArrowRight size={18} />
             </Link>
             <Link
-              to="/members"
+              to="/login"
               className="inline-flex items-center justify-center gap-2 bg-white/15 border border-white/30 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/25 transition-colors"
             >
-              {t('home.browseMembers')}
+              Already a Member? Sign In
             </Link>
           </div>
         </div>
@@ -144,12 +144,20 @@ export default function Home() {
           <p className="text-white/80 text-lg mb-8">
             {t('home.ctaDesc')}
           </p>
-          <Link
-            to="/register"
-            className="inline-flex items-center gap-2 bg-white text-saffron-700 font-semibold px-8 py-3.5 rounded-xl hover:bg-yellow-50 transition-colors shadow-lg"
-          >
-            {t('home.getStarted')} <ArrowRight size={18} />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 bg-white text-saffron-700 font-semibold px-8 py-3.5 rounded-xl hover:bg-yellow-50 transition-colors shadow-lg"
+            >
+              {t('home.getStarted')} <ArrowRight size={18} />
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 bg-white/15 border border-white/30 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-white/25 transition-colors"
+            >
+              Already a Member? Sign In
+            </Link>
+          </div>
         </div>
       </section>
     </div>
