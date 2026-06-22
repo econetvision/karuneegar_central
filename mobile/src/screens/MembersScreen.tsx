@@ -46,7 +46,7 @@ export default function MembersScreen({ navigation }: any) {
     const name = item.profile?.full_name || item.username;
     const photo = item.profile?.photo_filename ? uploadUrl(item.profile.photo_filename) : null;
     return (
-      <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('UserProfile', { username: item.username })}>
+      <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Profile', { username: item.username })}>
         <View style={styles.avatar}>
           {photo
             ? <Image source={{ uri: photo }} style={styles.avatarImg} />
