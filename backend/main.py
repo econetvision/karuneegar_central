@@ -20,7 +20,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, Scholarship
-from sms import generate_otp, send_otp_sms
+from sms import generate_otp, send_otp_sms, send_otp_autogen
 from email_otp import send_otp_email
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
@@ -266,23 +266,23 @@ def send_otp_route():
     if recent >= 3:
         return jsonify({'error': 'Too many requests. Please wait 10 minutes.'}), 429
 
-    otp     = generate_otp()
+    if is_indian:
+        # Use 2Factor AUTOGEN — 2Factor generates & sends OTP, returns the code
+        otp = send_otp_autogen(mobile)
+        if not otp:
+            return jsonify({'error': 'Failed to send OTP to mobile number. Please try again.'}), 500
+        channel = 'mobile number'
+    else:
+        otp = generate_otp()
+        ok  = send_otp_email(email, otp)
+        if not ok:
+            return jsonify({'error': f'Failed to send OTP to email {email}. Please try again.'}), 500
+        channel = f'email {email}'
+
     expires = _now() + timedelta(minutes=10)
     req     = OtpRequest(mobile=mobile, code=otp, expires_at=expires)
     db.session.add(req)
     db.session.commit()
-
-    if is_indian:
-        ok = send_otp_sms(mobile, otp)
-        channel = 'mobile number'
-    else:
-        ok = send_otp_email(email, otp)
-        channel = f'email {email}'
-
-    if not ok:
-        db.session.delete(req)
-        db.session.commit()
-        return jsonify({'error': f'Failed to send OTP to {channel}. Please try again.'}), 500
 
     resp = {'message': f'OTP sent to your {channel}', 'via': 'sms' if is_indian else 'email'}
     return jsonify(resp)

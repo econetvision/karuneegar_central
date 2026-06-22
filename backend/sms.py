@@ -15,6 +15,50 @@ def generate_otp() -> str:
     return str(secrets.randbelow(90000) + 10000)
 
 
+def send_otp_autogen(mobile: str) -> str | None:
+    """Call 2Factor AUTOGEN endpoint — 2Factor generates and sends the OTP,
+    returns the generated OTP string so the backend can store it for verification.
+    Returns None on failure."""
+    if os.environ.get('MOCK_SMS', 'false').lower() == 'true':
+        mock_otp = generate_otp()
+        logger.warning('MOCK SMS (AUTOGEN) | mobile=%s otp=<redacted>', mobile)
+        print(f'\n{"="*40}\nMOCK SMS  ->  {mobile}\nOTP CODE  ->  {mock_otp}\n{"="*40}\n', flush=True)
+        return mock_otp
+
+    api_key = os.environ.get('TWOFACTOR_API_KEY', '').strip()
+    if not api_key:
+        logger.error('2Factor: TWOFACTOR_API_KEY env var is MISSING — SMS cannot be sent')
+        return None
+
+    number = mobile[3:] if mobile.startswith('+91') else mobile.lstrip('+')
+    template = os.environ.get('TWOFACTOR_SMS_TEMPLATE', 'OTP1').strip()
+    url = f'https://2factor.in/API/V1/{api_key}/SMS/{number}/AUTOGEN/{template}'
+    logger.info('2Factor AUTOGEN SMS: number=%s template=%s', number, template)
+
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url), timeout=10) as resp:
+            body = json.loads(resp.read())
+            status = body.get('Status', '')
+            details = body.get('Details', '')
+            logger.info('2Factor AUTOGEN response: Status=%r Details=%r', status, details)
+            if status == 'Success' and details:
+                logger.info('2Factor AUTOGEN OTP sent and received for %s', number)
+                return str(details)
+            logger.error(
+                '2Factor AUTOGEN FAILED — Status=%r Details=%r '
+                '(check TWOFACTOR_API_KEY and OTP1 template registration)',
+                status, details,
+            )
+            return None
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode('utf-8', errors='replace')
+        logger.error('2Factor AUTOGEN HTTP error %s: %s', exc.code, raw)
+        return None
+    except Exception as exc:
+        logger.error('2Factor AUTOGEN unexpected error: %s', exc)
+        return None
+
+
 def send_otp_sms(mobile: str, otp: str) -> bool:
     """Send OTP via SMS only. WhatsApp fallback is intentionally disabled —
     2Factor.in delivers via voice IVR when WhatsApp is not activated, which
