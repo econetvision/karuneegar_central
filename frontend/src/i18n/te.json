@@ -102,7 +102,8 @@
     "creatingAccount": "ఖాతా సృష్టిస్తోంది…",
     "createAccountBtn": "ఖాతా సృష్టించండి",
     "alreadyMember": "ఇప్పటికే సభ్యుడా?",
-    "signInLink": "సైన్ ఇన్"
+    "signInLink": "సైన్ ఇన్",
+    "forgotPassword": "పాస్‌వర్డ్ మర్చిపోయారా?"
   },
   "members": {
     "title": "సమాజ సభ్యులు",

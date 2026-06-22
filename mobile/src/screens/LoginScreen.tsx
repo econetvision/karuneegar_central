@@ -40,7 +40,12 @@ export default function LoginScreen({ navigation }: any) {
           value={identifier}
           onChangeText={setIdentifier}
         />
-        <Text style={styles.label}>Password</Text>
+        <View style={styles.passwordHeader}>
+          <Text style={styles.label}>Password</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotLink}>Forgot password?</Text>
+          </TouchableOpacity>
+        </View>
         <TextInput
           style={styles.input}
           placeholder="Enter password"
@@ -76,6 +81,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.lg, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, marginBottom: spacing.md },
   label: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6, marginTop: spacing.sm },
   input: { borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: 12, fontSize: 15, color: colors.text, backgroundColor: '#fafaf9' },
+  passwordHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, marginTop: spacing.sm },
+  forgotLink: { fontSize: 12, color: colors.primary, fontWeight: '600' },
   primaryBtn: { backgroundColor: colors.primary, borderRadius: radius.md, padding: 14, alignItems: 'center', marginTop: spacing.lg },
   primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   joinCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.lg, borderWidth: 2, borderColor: '#fed7aa', alignItems: 'center' },

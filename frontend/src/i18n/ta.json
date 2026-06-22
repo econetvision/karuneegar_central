@@ -102,7 +102,8 @@
     "creatingAccount": "கணக்கு உருவாக்குகிறது…",
     "createAccountBtn": "கணக்கு உருவாக்கு",
     "alreadyMember": "ஏற்கனவே உறுப்பினரா?",
-    "signInLink": "உள்நுழை"
+    "signInLink": "உள்நுழை",
+    "forgotPassword": "கடவுச்சொல் மறந்தீர்களா?"
   },
   "members": {
     "title": "சமூக உறுப்பினர்கள்",

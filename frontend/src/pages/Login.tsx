@@ -61,7 +61,12 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className="label">{t('auth.password')}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label !mb-0">{t('auth.password')}</label>
+                <Link to="/forgot-password" className="text-xs text-saffron-600 hover:underline">
+                  {t('auth.forgotPassword')}
+                </Link>
+              </div>
               <input
                 type="password"
                 className="input"

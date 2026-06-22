@@ -338,6 +338,90 @@ def me():
     return jsonify({'user': user.to_dict(full=True)})
 
 
+@app.route('/api/auth/forgot-password', methods=['POST'])
+@limiter.limit("5 per 10 minutes")
+def forgot_password():
+    data   = request.get_json()
+    mobile = _normalize_mobile(data.get('mobile') or '')
+
+    if not mobile:
+        return jsonify({'error': 'Mobile number is required'}), 400
+    if not mobile.startswith('+') or len(mobile) < 10:
+        return jsonify({'error': 'Enter number with country code, e.g. +919876543210'}), 400
+
+    user = User.query.filter_by(mobile=mobile).first()
+    if not user:
+        return jsonify({'error': 'No account found with this mobile number'}), 404
+
+    is_indian = mobile.startswith('+91')
+
+    if not is_indian:
+        email = (data.get('email') or user.email or '').strip().lower()
+        if not email:
+            return jsonify({'error': 'Email is required for international numbers'}), 400
+
+    cutoff = _now() - timedelta(minutes=10)
+    recent = OtpRequest.query.filter(
+        OtpRequest.mobile == mobile,
+        OtpRequest.created_at >= cutoff
+    ).count()
+    if recent >= 3:
+        return jsonify({'error': 'Too many requests. Please wait 10 minutes.'}), 429
+
+    if is_indian:
+        otp = send_otp_autogen(mobile)
+        if not otp:
+            return jsonify({'error': 'Failed to send OTP. Please try again.'}), 500
+        channel = 'mobile number'
+    else:
+        otp = generate_otp()
+        ok  = send_otp_email(email, otp)
+        if not ok:
+            return jsonify({'error': f'Failed to send OTP to {email}. Please try again.'}), 500
+        channel = f'email {email}'
+
+    expires = _now() + timedelta(minutes=10)
+    req     = OtpRequest(mobile=mobile, code=otp, expires_at=expires)
+    db.session.add(req)
+    db.session.commit()
+
+    return jsonify({'message': f'OTP sent to your {channel}', 'via': 'sms' if is_indian else 'email'})
+
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+@limiter.limit("10 per 10 minutes")
+def reset_password():
+    data     = request.get_json()
+    mobile   = _normalize_mobile(data.get('mobile') or '')
+    otp_code = (data.get('otp_code') or '').strip()
+    new_pass = data.get('new_password') or ''
+
+    if not mobile or not otp_code or not new_pass:
+        return jsonify({'error': 'Mobile, OTP, and new password are required'}), 400
+    if len(new_pass) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+
+    user = User.query.filter_by(mobile=mobile).first()
+    if not user:
+        return jsonify({'error': 'No account found with this mobile number'}), 404
+
+    now = _now()
+    otp_req = OtpRequest.query.filter(
+        OtpRequest.mobile   == mobile,
+        OtpRequest.code     == otp_code,
+        OtpRequest.expires_at > now,
+    ).order_by(OtpRequest.created_at.desc()).first()
+
+    if not otp_req:
+        return jsonify({'error': 'Invalid or expired OTP'}), 400
+
+    user.set_password(new_pass)
+    db.session.delete(otp_req)
+    db.session.commit()
+
+    return jsonify({'message': 'Password reset successfully'})
+
+
 # ─── Upload ───────────────────────────────────────────────────────────────────
 
 def _upload_to_cloudinary(buf) -> str:
