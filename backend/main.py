@@ -529,6 +529,87 @@ def update_mobile_visibility():
     return jsonify({'mobile_public': user.mobile_public})
 
 
+@app.route('/api/profile/request-mobile-change', methods=['POST'])
+@jwt_required()
+@limiter.limit("5 per 10 minutes")
+def request_mobile_change():
+    user       = User.query.get(int(get_jwt_identity()))
+    data       = request.get_json()
+    new_mobile = _normalize_mobile(data.get('new_mobile') or '')
+
+    if not new_mobile:
+        return jsonify({'error': 'New mobile number is required'}), 400
+    if not new_mobile.startswith('+') or len(new_mobile) < 10:
+        return jsonify({'error': 'Enter number with country code, e.g. +919876543210'}), 400
+    if new_mobile == user.mobile:
+        return jsonify({'error': 'That is already your current mobile number'}), 400
+    if User.query.filter(User.mobile == new_mobile, User.id != user.id).first():
+        return jsonify({'error': 'This mobile number is already registered to another account'}), 409
+
+    is_indian = new_mobile.startswith('+91')
+
+    if not is_indian:
+        email = (data.get('email') or user.email or '').strip().lower()
+        if not email:
+            return jsonify({'error': 'Email is required for international numbers'}), 400
+
+    cutoff = _now() - timedelta(minutes=10)
+    recent = OtpRequest.query.filter(
+        OtpRequest.mobile == new_mobile,
+        OtpRequest.created_at >= cutoff
+    ).count()
+    if recent >= 3:
+        return jsonify({'error': 'Too many requests. Please wait 10 minutes.'}), 429
+
+    if is_indian:
+        otp = send_otp_autogen(new_mobile)
+        if not otp:
+            return jsonify({'error': 'Failed to send OTP. Please try again.'}), 500
+        channel = 'new mobile number'
+    else:
+        otp = generate_otp()
+        ok  = send_otp_email(email, otp)
+        if not ok:
+            return jsonify({'error': f'Failed to send OTP to {email}. Please try again.'}), 500
+        channel = f'email {email}'
+
+    expires = _now() + timedelta(minutes=10)
+    db.session.add(OtpRequest(mobile=new_mobile, code=otp, expires_at=expires))
+    db.session.commit()
+
+    return jsonify({'message': f'OTP sent to your {channel}', 'via': 'sms' if is_indian else 'email'})
+
+
+@app.route('/api/profile/confirm-mobile-change', methods=['POST'])
+@jwt_required()
+def confirm_mobile_change():
+    user       = User.query.get(int(get_jwt_identity()))
+    data       = request.get_json()
+    new_mobile = _normalize_mobile(data.get('new_mobile') or '')
+    otp_code   = (data.get('otp_code') or '').strip()
+
+    if not new_mobile or not otp_code:
+        return jsonify({'error': 'New mobile and OTP are required'}), 400
+    if User.query.filter(User.mobile == new_mobile, User.id != user.id).first():
+        return jsonify({'error': 'This mobile number is already registered to another account'}), 409
+
+    otp_req = OtpRequest.query.filter(
+        OtpRequest.mobile    == new_mobile,
+        OtpRequest.code      == otp_code,
+        OtpRequest.expires_at > _now(),
+    ).order_by(OtpRequest.created_at.desc()).first()
+
+    if not otp_req:
+        return jsonify({'error': 'Invalid or expired OTP'}), 400
+
+    user.mobile          = new_mobile
+    user.mobile_verified = True
+    db.session.delete(otp_req)
+    db.session.commit()
+
+    return jsonify({'message': 'Mobile number updated successfully', 'user': user.to_dict(full=True)})
+
+
 @app.route('/api/users/<username>', methods=['GET'])
 def get_user_profile(username):
     user = User.query.filter_by(username=username).first_or_404()

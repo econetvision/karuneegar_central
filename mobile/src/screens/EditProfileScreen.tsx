@@ -4,12 +4,23 @@ import api from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 
+type MobileStep = 'enter' | 'otp';
+
 export default function EditProfileScreen({ navigation }: any) {
   const { refreshUser } = useAuth();
   const [form, setForm] = useState<any>({});
   const [mobilePublic, setMobilePublic] = useState(false);
+  const [currentMobile, setCurrentMobile] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Mobile change
+  const [showMobileChange, setShowMobileChange] = useState(false);
+  const [mobileStep, setMobileStep] = useState<MobileStep>('enter');
+  const [newMobile, setNewMobile] = useState('');
+  const [mobileEmail, setMobileEmail] = useState('');
+  const [mobileOtp, setMobileOtp] = useState('');
+  const [mobileLoading, setMobileLoading] = useState(false);
 
   const setF = (k: string) => (v: string) => setForm((f: any) => ({ ...f, [k]: v }));
 
@@ -17,6 +28,7 @@ export default function EditProfileScreen({ navigation }: any) {
     api.get('/profile').then((r) => {
       const p = r.data.profile || {};
       const u = r.data.user || {};
+      setCurrentMobile(u.mobile || '');
       setForm({
         full_name: p.full_name || '',
         bio: p.bio || '',
@@ -31,6 +43,42 @@ export default function EditProfileScreen({ navigation }: any) {
       setMobilePublic(!!u.mobile_public);
     }).finally(() => setLoading(false));
   }, []);
+
+  const isNewMobileIndian = newMobile.startsWith('+91');
+
+  const sendMobileOtp = async () => {
+    if (!newMobile) { Alert.alert('Error', 'Enter your new mobile number.'); return; }
+    setMobileLoading(true);
+    try {
+      const body: Record<string, string> = { new_mobile: newMobile };
+      if (!isNewMobileIndian && mobileEmail) body.email = mobileEmail;
+      const res = await api.post('/profile/request-mobile-change', body);
+      Alert.alert('OTP Sent', res.data.message);
+      setMobileStep('otp');
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to send OTP.');
+    } finally {
+      setMobileLoading(false);
+    }
+  };
+
+  const confirmMobileChange = async () => {
+    if (!mobileOtp) { Alert.alert('Error', 'Enter the OTP.'); return; }
+    setMobileLoading(true);
+    try {
+      const res = await api.post('/profile/confirm-mobile-change', { new_mobile: newMobile, otp_code: mobileOtp });
+      setCurrentMobile(res.data.user.mobile);
+      await refreshUser();
+      setShowMobileChange(false);
+      setMobileStep('enter');
+      setNewMobile(''); setMobileOtp('');
+      Alert.alert('Success', 'Mobile number updated successfully.');
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to update mobile number.');
+    } finally {
+      setMobileLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -77,6 +125,83 @@ export default function EditProfileScreen({ navigation }: any) {
             <Text style={styles.switchDesc}>Other members can see your contact number</Text>
           </View>
           <Switch value={mobilePublic} onValueChange={setMobilePublic} trackColor={{ false: colors.border, true: colors.primaryLight }} thumbColor={mobilePublic ? colors.primary : '#fff'} />
+        </View>
+
+        {/* Change Mobile Number */}
+        <View style={styles.mobileCard}>
+          <View style={styles.mobileCardHeader}>
+            <View>
+              <Text style={styles.mobileCardTitle}>Mobile Number</Text>
+              <Text style={styles.mobileCardCurrent}>{currentMobile || '—'}</Text>
+            </View>
+            {!showMobileChange && (
+              <TouchableOpacity onPress={() => setShowMobileChange(true)}>
+                <Text style={styles.changeLink}>Change</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {showMobileChange && (
+            <>
+              {mobileStep === 'enter' && (
+                <>
+                  <Text style={styles.label}>New Mobile Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+919876543210"
+                    keyboardType="phone-pad"
+                    autoCapitalize="none"
+                    value={newMobile}
+                    onChangeText={setNewMobile}
+                  />
+                  <Text style={styles.hint}>Include country code, e.g. +919876543210</Text>
+                  {newMobile.length > 3 && !isNewMobileIndian && (
+                    <>
+                      <Text style={styles.label}>Email (for OTP delivery)</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="your@email.com"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={mobileEmail}
+                        onChangeText={setMobileEmail}
+                      />
+                    </>
+                  )}
+                  <View style={styles.mobileActions}>
+                    <TouchableOpacity style={styles.primaryBtn} onPress={sendMobileOtp} disabled={mobileLoading}>
+                      {mobileLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Send OTP</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowMobileChange(false); setNewMobile(''); }}>
+                      <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              {mobileStep === 'otp' && (
+                <>
+                  <Text style={styles.label}>Enter OTP</Text>
+                  <TextInput
+                    style={[styles.input, styles.otpInput]}
+                    placeholder="------"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    value={mobileOtp}
+                    onChangeText={(v) => setMobileOtp(v.replace(/\D/g, ''))}
+                  />
+                  <View style={styles.mobileActions}>
+                    <TouchableOpacity style={styles.primaryBtn} onPress={confirmMobileChange} disabled={mobileLoading || mobileOtp.length < 4}>
+                      {mobileLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Confirm</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={() => { setMobileStep('enter'); setMobileOtp(''); }}>
+                      <Text style={styles.cancelBtnText}>← Back</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </>
+          )}
         </View>
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>

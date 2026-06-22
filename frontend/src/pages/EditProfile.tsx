@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, User, Globe, Lock, Star } from 'lucide-react';
+import { Camera, Upload, User, Globe, Lock, Star, Smartphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +23,17 @@ export default function EditProfile() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  // Mobile change state
+  const [currentMobile, setCurrentMobile] = useState('');
+  const [showMobileChange, setShowMobileChange] = useState(false);
+  const [mobileStep, setMobileStep] = useState<'enter' | 'otp'>('enter');
+  const [newMobile, setNewMobile] = useState('');
+  const [mobileEmail, setMobileEmail] = useState('');
+  const [mobileOtp, setMobileOtp] = useState('');
+  const [mobileInfo, setMobileInfo] = useState('');
+  const [mobileError, setMobileError] = useState('');
+  const [mobileLoading, setMobileLoading] = useState(false);
+
   useEffect(() => {
     api.get('/profile').then((r) => {
       const p = r.data.profile || {};
@@ -43,6 +54,7 @@ export default function EditProfile() {
       setIsPublic(p.is_public ?? null);
       setMobilePublic(r.data.user?.mobile_public ?? false);
       setIsProminent(p.is_prominent ?? false);
+      setCurrentMobile(r.data.user?.mobile || '');
     });
   }, []);
 
@@ -78,6 +90,43 @@ export default function EditProfile() {
       setError(err.response?.data?.error || 'Failed to save profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const isNewMobileIndian = newMobile.startsWith('+91');
+
+  const sendMobileOtp = async (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    setMobileError('');
+    setMobileLoading(true);
+    try {
+      const body: Record<string, string> = { new_mobile: newMobile };
+      if (!isNewMobileIndian && mobileEmail) body.email = mobileEmail;
+      const res = await api.post('/profile/request-mobile-change', body);
+      setMobileInfo(res.data.message);
+      setMobileStep('otp');
+    } catch (err: any) {
+      setMobileError(err.response?.data?.error || 'Failed to send OTP.');
+    } finally {
+      setMobileLoading(false);
+    }
+  };
+
+  const confirmMobileChange = async (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    setMobileError('');
+    setMobileLoading(true);
+    try {
+      const res = await api.post('/profile/confirm-mobile-change', { new_mobile: newMobile, otp_code: mobileOtp });
+      setCurrentMobile(res.data.user.mobile);
+      await refreshUser();
+      setShowMobileChange(false);
+      setMobileStep('enter');
+      setNewMobile(''); setMobileOtp(''); setMobileInfo('');
+    } catch (err: any) {
+      setMobileError(err.response?.data?.error || 'Failed to update mobile number.');
+    } finally {
+      setMobileLoading(false);
     }
   };
 
@@ -297,6 +346,112 @@ export default function EditProfile() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Change Mobile Number */}
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Smartphone size={16} className="text-saffron-600" />
+              <h2 className="font-semibold text-gray-800">Mobile Number</h2>
+            </div>
+            {!showMobileChange && (
+              <button
+                type="button"
+                onClick={() => setShowMobileChange(true)}
+                className="text-sm text-saffron-600 font-medium hover:underline"
+              >
+                Change
+              </button>
+            )}
+          </div>
+
+          <p className="text-sm text-gray-500">
+            Current: <span className="font-mono font-medium text-gray-700">{currentMobile || '—'}</span>
+          </p>
+
+          {showMobileChange && (
+            <div className="border-t border-gray-100 pt-4 space-y-4">
+              {mobileError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">{mobileError}</div>
+              )}
+              {mobileInfo && (
+                <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">{mobileInfo}</div>
+              )}
+
+              {mobileStep === 'enter' && (
+                <form onSubmit={sendMobileOtp} className="space-y-3">
+                  <div>
+                    <label className="label">New Mobile Number</label>
+                    <input
+                      type="tel"
+                      className="input"
+                      placeholder="+919876543210"
+                      value={newMobile}
+                      onChange={(e) => setNewMobile(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Include country code, e.g. +919876543210</p>
+                  </div>
+                  {newMobile && !isNewMobileIndian && (
+                    <div>
+                      <label className="label">Email (for OTP delivery)</label>
+                      <input
+                        type="email"
+                        className="input"
+                        placeholder="your@email.com"
+                        value={mobileEmail}
+                        onChange={(e) => setMobileEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button type="submit" disabled={mobileLoading} className="btn-primary">
+                      {mobileLoading ? 'Sending…' : 'Send OTP'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowMobileChange(false); setMobileError(''); setNewMobile(''); }}
+                      className="btn-outline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {mobileStep === 'otp' && (
+                <form onSubmit={confirmMobileChange} className="space-y-3">
+                  <div>
+                    <label className="label">Enter OTP</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="input tracking-widest text-center text-xl"
+                      placeholder="------"
+                      maxLength={6}
+                      value={mobileOtp}
+                      onChange={(e) => setMobileOtp(e.target.value.replace(/\D/g, ''))}
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="submit" disabled={mobileLoading || mobileOtp.length < 4} className="btn-primary">
+                      {mobileLoading ? 'Verifying…' : 'Confirm Change'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setMobileStep('enter'); setMobileOtp(''); setMobileInfo(''); setMobileError(''); }}
+                      className="btn-outline"
+                    >
+                      ← Back
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3">
