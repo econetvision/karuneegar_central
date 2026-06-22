@@ -32,6 +32,8 @@ import CreateBusinessAdScreen from '../screens/CreateBusinessAdScreen';
 import FamilyTreeScreen from '../screens/FamilyTreeScreen';
 import ServicesScreen from '../screens/ServicesScreen';
 import AboutScreen from '../screens/AboutScreen';
+import PilgrimagesScreen from '../screens/PilgrimagesScreen';
+import PilgrimageViewScreen from '../screens/PilgrimageViewScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -68,6 +70,8 @@ function ServicesStack() {
   return (
     <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.text, headerTitleStyle: { fontWeight: '700' } }}>
       <Stack.Screen name="ServicesHub" component={ServicesScreen} options={{ title: 'Services' }} />
+      <Stack.Screen name="Pilgrimages" component={PilgrimagesScreen} options={{ title: 'Pilgrimages' }} />
+      <Stack.Screen name="PilgrimageView" component={PilgrimageViewScreen} options={{ title: 'Trip Details' }} />
       <Stack.Screen name="Scholarships" component={ScholarshipScreen} options={{ title: 'Scholarships' }} />
       <Stack.Screen name="Matrimony" component={MatrimonyScreen} options={{ title: 'Matrimony' }} />
       <Stack.Screen name="MatrimonyCreate" component={MatrimonyCreateScreen} options={{ title: 'Create Profile' }} />

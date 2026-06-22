@@ -20,7 +20,7 @@ from flask_jwt_extended import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
-from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, BusinessAd, Scholarship
+from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, BusinessAd, Scholarship, Pilgrimage
 from sms import generate_otp, send_otp_sms, send_otp_autogen
 from email_otp import send_otp_email
 
@@ -1228,6 +1228,87 @@ def delete_scholarship(sch_id):
     if s.user_id != user_id and not (user and user.is_admin):
         return jsonify({'error': 'Forbidden'}), 403
     s.active = False
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+# ─── Pilgrimages ──────────────────────────────────────────────────────────────
+
+@app.route('/api/pilgrimages', methods=['GET'])
+def get_pilgrimages():
+    page = request.args.get('page', 1, type=int)
+    pagination = (Pilgrimage.query
+                  .filter_by(active=True)
+                  .order_by(Pilgrimage.created_at.desc())
+                  .paginate(page=page, per_page=12, error_out=False))
+    return jsonify({
+        'pilgrimages': [p.to_dict() for p in pagination.items],
+        'total': pagination.total,
+        'pages': pagination.pages,
+        'page': page,
+    })
+
+
+@app.route('/api/pilgrimages', methods=['POST'])
+@jwt_required()
+def create_pilgrimage():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    if not data.get('title', '').strip():
+        return jsonify({'error': 'title is required'}), 400
+    if not data.get('destination', '').strip():
+        return jsonify({'error': 'destination is required'}), 400
+    p = Pilgrimage(
+        user_id=user_id,
+        title=data['title'].strip(),
+        destination=data['destination'].strip(),
+        description=data.get('description', ''),
+        itinerary=data.get('itinerary', ''),
+        start_date=data.get('start_date', ''),
+        end_date=data.get('end_date', ''),
+        cost=data.get('cost', ''),
+        capacity=data.get('capacity') or None,
+        organizer_name=data.get('organizer_name', ''),
+        organizer_mobile=data.get('organizer_mobile', ''),
+        photo_filename=data.get('photo_filename', ''),
+    )
+    db.session.add(p)
+    db.session.commit()
+    return jsonify({'pilgrimage': p.to_dict()}), 201
+
+
+@app.route('/api/pilgrimages/<int:pid>', methods=['GET'])
+def get_pilgrimage(pid):
+    p = Pilgrimage.query.get_or_404(pid)
+    return jsonify({'pilgrimage': p.to_dict()})
+
+
+@app.route('/api/pilgrimages/<int:pid>', methods=['PUT'])
+@jwt_required()
+def update_pilgrimage(pid):
+    user_id = int(get_jwt_identity())
+    p = Pilgrimage.query.get_or_404(pid)
+    if p.user_id != user_id:
+        return jsonify({'error': 'Forbidden'}), 403
+    data = request.get_json()
+    for field in ('title', 'destination', 'description', 'itinerary',
+                  'start_date', 'end_date', 'cost', 'capacity',
+                  'organizer_name', 'organizer_mobile', 'photo_filename'):
+        if field in data:
+            setattr(p, field, data[field])
+    db.session.commit()
+    return jsonify({'pilgrimage': p.to_dict()})
+
+
+@app.route('/api/pilgrimages/<int:pid>', methods=['DELETE'])
+@jwt_required()
+def delete_pilgrimage(pid):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    p = Pilgrimage.query.get_or_404(pid)
+    if p.user_id != user_id and not (user and user.is_admin):
+        return jsonify({'error': 'Forbidden'}), 403
+    p.active = False
     db.session.commit()
     return jsonify({'ok': True})
 

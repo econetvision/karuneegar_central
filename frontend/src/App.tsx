@@ -22,6 +22,8 @@ import BusinessProfileView from './pages/BusinessProfileView';
 import EditBusiness from './pages/EditBusiness';
 import AboutKaruneegar from './pages/AboutKaruneegar';
 import Scholarship from './pages/Scholarship';
+import Pilgrimages from './pages/Pilgrimages';
+import PilgrimageView from './pages/PilgrimageView';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -78,6 +80,8 @@ export default function App() {
           <Route path="/matrimony/create" element={<Layout><PrivateRoute><MatrimonyCreate /></PrivateRoute></Layout>} />
           <Route path="/matrimony/:profileId" element={<Layout><PrivateRoute><MatrimonyView /></PrivateRoute></Layout>} />
           <Route path="/scholarships" element={<Layout><PrivateRoute><Scholarship /></PrivateRoute></Layout>} />
+          <Route path="/pilgrimages" element={<Layout><PrivateRoute><Pilgrimages /></PrivateRoute></Layout>} />
+          <Route path="/pilgrimages/:id" element={<Layout><PrivateRoute><PilgrimageView /></PrivateRoute></Layout>} />
           <Route path="/businesses" element={<Layout><PrivateRoute><Businesses /></PrivateRoute></Layout>} />
           <Route path="/business/edit" element={<Layout><PrivateRoute><EditBusiness /></PrivateRoute></Layout>} />
           <Route path="/business/:id" element={<Layout><PrivateRoute><BusinessProfileView /></PrivateRoute></Layout>} />

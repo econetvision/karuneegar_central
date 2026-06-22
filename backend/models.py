@@ -393,3 +393,43 @@ class Scholarship(db.Model):
             'active': self.active,
             'created_at': self.created_at.isoformat(),
         }
+
+
+class Pilgrimage(db.Model):
+    id               = db.Column(db.Integer, primary_key=True)
+    user_id          = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title            = db.Column(db.String(200), nullable=False)
+    destination      = db.Column(db.String(200), nullable=False)
+    description      = db.Column(db.Text)
+    itinerary        = db.Column(db.Text)
+    start_date       = db.Column(db.String(20))
+    end_date         = db.Column(db.String(20))
+    cost             = db.Column(db.String(100))
+    capacity         = db.Column(db.Integer)
+    organizer_name   = db.Column(db.String(200))
+    organizer_mobile = db.Column(db.String(30))
+    photo_filename   = db.Column(db.String(300))
+    active           = db.Column(db.Boolean, default=True)
+    created_at       = db.Column(db.DateTime, default=datetime.utcnow)
+    user             = db.relationship('User', backref='pilgrimages')
+
+    def to_dict(self):
+        return {
+            'id':               self.id,
+            'user_id':          self.user_id,
+            'poster_username':  self.user.username if self.user else None,
+            'poster_name':      self.user.profile.full_name if self.user and self.user.profile else None,
+            'title':            self.title,
+            'destination':      self.destination,
+            'description':      self.description,
+            'itinerary':        self.itinerary,
+            'start_date':       self.start_date,
+            'end_date':         self.end_date,
+            'cost':             self.cost,
+            'capacity':         self.capacity,
+            'organizer_name':   self.organizer_name,
+            'organizer_mobile': self.organizer_mobile,
+            'photo_filename':   self.photo_filename,
+            'active':           self.active,
+            'created_at':       self.created_at.isoformat() if self.created_at else None,
+        }
