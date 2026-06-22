@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, GitBranch, MessageSquare, Heart, ArrowRight, Star } from 'lucide-react';
+import { Users, GitBranch, MessageSquare, Heart, ArrowRight, Star, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 
@@ -47,6 +47,13 @@ export default function Home() {
       desc: t('home.featureMatrimonyDesc'),
       to: '/matrimony',
       color: 'from-rose-50 to-pink-50',
+    },
+    {
+      icon: <MapPin className="w-7 h-7 text-amber-600" />,
+      title: t('home.featurePilgrimages'),
+      desc: t('home.featurePilgrimagesDesc'),
+      to: '/pilgrimages',
+      color: 'from-amber-50 to-orange-50',
     },
   ];
 
