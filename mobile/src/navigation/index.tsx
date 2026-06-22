@@ -26,6 +26,8 @@ import MatrimonyCreateScreen from '../screens/MatrimonyCreateScreen';
 import MatrimonyViewScreen from '../screens/MatrimonyViewScreen';
 import BusinessesScreen from '../screens/BusinessesScreen';
 import BusinessProfileViewScreen from '../screens/BusinessProfileViewScreen';
+import CreateBusinessScreen from '../screens/CreateBusinessScreen';
+import CreateBusinessAdScreen from '../screens/CreateBusinessAdScreen';
 import FamilyTreeScreen from '../screens/FamilyTreeScreen';
 import ServicesScreen from '../screens/ServicesScreen';
 import AboutScreen from '../screens/AboutScreen';
@@ -71,6 +73,8 @@ function ServicesStack() {
       <Stack.Screen name="MatrimonyView" component={MatrimonyViewScreen} options={{ title: 'Profile' }} />
       <Stack.Screen name="Businesses" component={BusinessesScreen} options={{ title: 'Businesses' }} />
       <Stack.Screen name="BusinessProfile" component={BusinessProfileViewScreen} options={{ title: 'Business' }} />
+      <Stack.Screen name="CreateBusiness" component={CreateBusinessScreen} options={{ title: 'Create Business' }} />
+      <Stack.Screen name="CreateBusinessAd" component={CreateBusinessAdScreen} options={{ title: 'Create Advertisement' }} />
       <Stack.Screen name="FamilyTree" component={FamilyTreeScreen} options={{ title: 'Family Tree' }} />
       <Stack.Screen name="Forums" component={ForumsScreen} options={{ title: 'Forums' }} />
       <Stack.Screen name="Members" component={MembersScreen} options={{ title: 'Members' }} />
