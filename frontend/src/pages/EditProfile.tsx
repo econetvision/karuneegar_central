@@ -95,8 +95,7 @@ export default function EditProfile() {
 
   const isNewMobileIndian = newMobile.startsWith('+91');
 
-  const sendMobileOtp = async (e: { preventDefault(): void }) => {
-    e.preventDefault();
+  const sendMobileOtp = async () => {
     setMobileError('');
     setMobileLoading(true);
     try {
@@ -112,8 +111,7 @@ export default function EditProfile() {
     }
   };
 
-  const confirmMobileChange = async (e: { preventDefault(): void }) => {
-    e.preventDefault();
+  const confirmMobileChange = async () => {
     setMobileError('');
     setMobileLoading(true);
     try {
@@ -380,7 +378,7 @@ export default function EditProfile() {
               )}
 
               {mobileStep === 'enter' && (
-                <form onSubmit={sendMobileOtp} className="space-y-3">
+                <div className="space-y-3">
                   <div>
                     <label className="label">New Mobile Number</label>
                     <input
@@ -389,7 +387,6 @@ export default function EditProfile() {
                       placeholder="+919876543210"
                       value={newMobile}
                       onChange={(e) => setNewMobile(e.target.value)}
-                      required
                     />
                     <p className="text-xs text-gray-400 mt-1">Include country code, e.g. +919876543210</p>
                   </div>
@@ -402,12 +399,11 @@ export default function EditProfile() {
                         placeholder="your@email.com"
                         value={mobileEmail}
                         onChange={(e) => setMobileEmail(e.target.value)}
-                        required
                       />
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <button type="submit" disabled={mobileLoading} className="btn-primary">
+                    <button type="button" onClick={sendMobileOtp} disabled={mobileLoading} className="btn-primary">
                       {mobileLoading ? 'Sending…' : 'Send OTP'}
                     </button>
                     <button
@@ -418,11 +414,11 @@ export default function EditProfile() {
                       Cancel
                     </button>
                   </div>
-                </form>
+                </div>
               )}
 
               {mobileStep === 'otp' && (
-                <form onSubmit={confirmMobileChange} className="space-y-3">
+                <div className="space-y-3">
                   <div>
                     <label className="label">Enter OTP</label>
                     <input
@@ -433,11 +429,10 @@ export default function EditProfile() {
                       maxLength={6}
                       value={mobileOtp}
                       onChange={(e) => setMobileOtp(e.target.value.replace(/\D/g, ''))}
-                      required
                     />
                   </div>
                   <div className="flex gap-2">
-                    <button type="submit" disabled={mobileLoading || mobileOtp.length < 4} className="btn-primary">
+                    <button type="button" onClick={confirmMobileChange} disabled={mobileLoading || mobileOtp.length < 4} className="btn-primary">
                       {mobileLoading ? 'Verifying…' : 'Confirm Change'}
                     </button>
                     <button
@@ -448,7 +443,7 @@ export default function EditProfile() {
                       ← Back
                     </button>
                   </div>
-                </form>
+                </div>
               )}
             </div>
           )}

@@ -116,6 +116,7 @@ def create_app():
             _migrate_scholarship_columns()
             _migrate_member_id()
             _migrate_matrimony_columns()
+            _migrate_otp_code_length()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -200,6 +201,17 @@ def _migrate_matrimony_columns():
                 conn.commit()
             except Exception:
                 conn.rollback()
+
+
+def _migrate_otp_code_length():
+    """Widen otp_request.code from VARCHAR(5) to VARCHAR(6) for 6-digit AUTOGEN codes."""
+    from sqlalchemy import text
+    with db.engine.connect() as conn:
+        try:
+            conn.execute(text('ALTER TABLE otp_request ALTER COLUMN code TYPE VARCHAR(6)'))
+            conn.commit()
+        except Exception:
+            conn.rollback()
 
 
 def allowed_file(filename):

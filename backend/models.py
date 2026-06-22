@@ -333,7 +333,7 @@ class BusinessAd(db.Model):
 class OtpRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     mobile = db.Column(db.String(20), nullable=False, index=True)
-    code = db.Column(db.String(5), nullable=False)
+    code = db.Column(db.String(6), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     used = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
