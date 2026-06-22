@@ -21,7 +21,7 @@ os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from main import app as flask_app, db as flask_db  # noqa: E402
+from main import app as flask_app, db as flask_db, limiter as flask_limiter  # noqa: E402
 from models import (  # noqa: E402
     User, Profile, OtpRequest, MatrimonyProfile,
     BusinessProfile, BusinessAd, ForumCategory, ForumThread,
@@ -40,6 +40,8 @@ def app():
         WTF_CSRF_ENABLED=False,
         SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
     )
+    # flask-limiter 4.x caches _enabled at construction time; force-disable it.
+    flask_limiter._enabled = False
     with flask_app.app_context():
         flask_db.create_all()
         _seed_forum_categories()
@@ -64,7 +66,7 @@ def _seed_forum_categories():
 
 @pytest.fixture(autouse=True)
 def clean_db(app):
-    """Delete all rows after each test and re-seed categories."""
+    """Delete all rows after each test, re-seed categories, and reset rate-limit counters."""
     yield
     with app.app_context():
         flask_db.session.remove()
@@ -72,6 +74,11 @@ def clean_db(app):
             flask_db.session.execute(table.delete())
         flask_db.session.commit()
         _seed_forum_categories()
+    # Clear rate-limit hit counters so each test starts with a clean slate.
+    try:
+        flask_limiter.storage.reset()
+    except Exception:
+        pass
 
 
 # ── Test client ───────────────────────────────────────────────────────────────
@@ -105,11 +112,11 @@ def seed_otp(app):
 # ── User registration / login helpers ────────────────────────────────────────
 
 def _do_register(client, seed_otp_fn, *,
-                 username="user1",
-                 email="user1@example.com",
+                 username="sathya",
+                 email="sathya20075@gmail.com",
                  password="password123",
-                 mobile="+919876543210",
-                 full_name="Test User One"):
+                 mobile="+919790840313",
+                 full_name="Sathya"):
     seed_otp_fn(mobile=mobile)
     return client.post("/api/auth/register", json={
         "username":  username,
@@ -140,8 +147,8 @@ def registered_user2(client, seed_otp):
     resp = _do_register(
         client, seed_otp,
         username="user2",
-        email="user2@example.com",
-        mobile="+919876543211",
+        email="user2@loadtest.local",
+        mobile="+919790840314",
         full_name="Test User Two",
     )
     assert resp.status_code == 201, resp.get_json()

@@ -93,14 +93,14 @@ def test_update_scholarship_by_owner(client, registered_user, auth_headers):
     assert resp.get_json()["scholarship"]["title"] == "Updated Title"
 
 
-def test_update_scholarship_by_non_owner_returns_404(
+def test_update_scholarship_by_non_owner_returns_403(
         client, registered_user, auth_headers, registered_user2, auth_headers2):
     sch_id = _create_scholarship(client, auth_headers).get_json()["scholarship"]["id"]
 
     resp = client.put(f"/api/scholarships/{sch_id}",
                       json={"title": "Hijacked"},
                       headers=auth_headers2)
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 # ── DELETE ────────────────────────────────────────────────────────────────────
@@ -112,12 +112,15 @@ def test_delete_scholarship_by_owner(client, registered_user, auth_headers):
     assert resp.status_code == 200
     assert resp.get_json().get("ok") is True
 
-    assert client.get(f"/api/scholarships/{sch_id}").status_code == 404
+    # Soft delete: record stays in DB with active=False; GET still returns 200
+    get_after = client.get(f"/api/scholarships/{sch_id}")
+    assert get_after.status_code == 200
+    assert get_after.get_json()["scholarship"]["active"] is False
 
 
-def test_delete_scholarship_by_non_owner_returns_404(
+def test_delete_scholarship_by_non_owner_returns_403(
         client, registered_user, auth_headers, registered_user2, auth_headers2):
     sch_id = _create_scholarship(client, auth_headers).get_json()["scholarship"]["id"]
 
     resp = client.delete(f"/api/scholarships/{sch_id}", headers=auth_headers2)
-    assert resp.status_code == 404
+    assert resp.status_code == 403

@@ -13,7 +13,7 @@ from unittest.mock import patch, MagicMock
 def test_full_registration_login_profile_flow(client, registered_user, auth_headers):
     # Login returns a token
     login = client.post("/api/auth/login", json={
-        "email":    "user1@example.com",
+        "email":    "sathya20075@gmail.com",
         "password": "password123",
     })
     assert login.status_code == 200
@@ -23,7 +23,7 @@ def test_full_registration_login_profile_flow(client, registered_user, auth_head
     # /api/auth/me works
     me = client.get("/api/auth/me", headers=headers)
     assert me.status_code == 200
-    assert me.get_json()["user"]["username"] == "user1"
+    assert me.get_json()["user"]["username"] == "sathya"
 
     # Update profile
     upd = client.put("/api/profile",
@@ -32,9 +32,10 @@ def test_full_registration_login_profile_flow(client, registered_user, auth_head
     assert upd.status_code == 200
 
     # Public profile reflects the update
-    pub = client.get("/api/users/user1")
+    pub = client.get("/api/users/sathya")
     assert pub.status_code == 200
-    assert pub.get_json()["user"]["full_name"] == "Full Name Updated"
+    # full_name lives in profile, not user
+    assert pub.get_json()["profile"]["full_name"] == "Full Name Updated"
 
 
 # ── Full matrimony CRUD flow ───────────────────────────────────────────────────

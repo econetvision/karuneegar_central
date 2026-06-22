@@ -4,8 +4,6 @@ Integration tests for profile endpoints.
 Fixtures from conftest.py: app, client, clean_db (autouse),
 seed_otp, registered_user, auth_headers, registered_user2, auth_headers2, OTP_CODE
 """
-from conftest import OTP_CODE, _do_register
-
 
 # ── GET own profile ───────────────────────────────────────────────────────────
 
@@ -15,7 +13,7 @@ def test_get_own_profile_returns_user_and_profile(client, registered_user, auth_
     data = resp.get_json()
     assert "user" in data
     assert "profile" in data
-    assert data["user"]["username"] == "user1"
+    assert data["user"]["username"] == "sathya"
 
 
 # ── Update profile ────────────────────────────────────────────────────────────
@@ -23,7 +21,8 @@ def test_get_own_profile_returns_user_and_profile(client, registered_user, auth_
 def test_update_profile_full_name(client, registered_user, auth_headers):
     resp = client.put("/api/profile", json={"full_name": "Updated Name"}, headers=auth_headers)
     assert resp.status_code == 200
-    assert resp.get_json()["user"]["full_name"] == "Updated Name"
+    # full_name lives in Profile, not User
+    assert resp.get_json()["profile"]["full_name"] == "Updated Name"
 
 
 def test_update_profile_multiple_fields(client, registered_user, auth_headers):
@@ -73,10 +72,10 @@ def test_get_public_profile_by_username(client, registered_user, auth_headers):
     # Make profile public first
     client.put("/api/profile", json={"is_public": True}, headers=auth_headers)
 
-    resp = client.get("/api/users/user1")
+    resp = client.get("/api/users/sathya")
     assert resp.status_code == 200
     data = resp.get_json()
-    assert data["user"]["username"] == "user1"
+    assert data["user"]["username"] == "sathya"
 
 
 def test_get_nonexistent_username_returns_404(client):
@@ -109,7 +108,7 @@ def test_list_members_search_filters_by_name(client, seed_otp, registered_user, 
     resp = client.get("/api/members?q=Rajan")
     assert resp.status_code == 200
     data = resp.get_json()
-    names = [m["full_name"] for m in data["members"]]
+    names = [m["profile"]["full_name"] for m in data["members"]]
     assert any("Rajan" in (n or "") for n in names)
 
 
