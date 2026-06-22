@@ -13,7 +13,7 @@ def _normalize_mobile(raw: str) -> str:
 
 def _now():
     return datetime.now(timezone.utc)
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, current_app
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 )
@@ -112,11 +112,11 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
+            _migrate_otp_code_length()
             _seed_forum_categories()
             _migrate_scholarship_columns()
             _migrate_member_id()
             _migrate_matrimony_columns()
-            _migrate_otp_code_length()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -204,14 +204,18 @@ def _migrate_matrimony_columns():
 
 
 def _migrate_otp_code_length():
-    """Widen otp_request.code from VARCHAR(5) to VARCHAR(6) for 6-digit AUTOGEN codes."""
+    """Widen otp_request.code to TEXT so 6-digit 2Factor AUTOGEN codes are never truncated."""
+    import logging as _log
     from sqlalchemy import text
+    _logger = _log.getLogger(__name__)
     with db.engine.connect() as conn:
         try:
-            conn.execute(text('ALTER TABLE otp_request ALTER COLUMN code TYPE VARCHAR(6)'))
+            conn.execute(text('ALTER TABLE otp_request ALTER COLUMN code TYPE TEXT'))
             conn.commit()
-        except Exception:
+            _logger.info('_migrate_otp_code_length: otp_request.code widened to TEXT')
+        except Exception as exc:
             conn.rollback()
+            _logger.warning('_migrate_otp_code_length skipped (already TEXT or SQLite): %s', exc)
 
 
 def allowed_file(filename):
@@ -315,9 +319,13 @@ def send_otp_route():
         channel = f'email {email}'
 
     expires = _now() + timedelta(minutes=10)
-    req     = OtpRequest(mobile=mobile, code=otp, expires_at=expires)
-    db.session.add(req)
-    db.session.commit()
+    try:
+        db.session.add(OtpRequest(mobile=mobile, code=otp, expires_at=expires))
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error('send_otp_route: DB save failed: %s', exc)
+        return jsonify({'error': 'Failed to save OTP. Please try again.'}), 500
 
     resp = {'message': f'OTP sent to your {channel}', 'via': 'sms' if is_indian else 'email'}
     return jsonify(resp)
@@ -393,9 +401,13 @@ def forgot_password():
         channel = f'email {email}'
 
     expires = _now() + timedelta(minutes=10)
-    req     = OtpRequest(mobile=mobile, code=otp, expires_at=expires)
-    db.session.add(req)
-    db.session.commit()
+    try:
+        db.session.add(OtpRequest(mobile=mobile, code=otp, expires_at=expires))
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error('forgot_password: DB save failed: %s', exc)
+        return jsonify({'error': 'Failed to save OTP. Please try again.'}), 500
 
     return jsonify({'message': f'OTP sent to your {channel}', 'via': 'sms' if is_indian else 'email'})
 
@@ -586,8 +598,13 @@ def request_mobile_change():
         channel = f'email {email}'
 
     expires = _now() + timedelta(minutes=10)
-    db.session.add(OtpRequest(mobile=new_mobile, code=otp, expires_at=expires))
-    db.session.commit()
+    try:
+        db.session.add(OtpRequest(mobile=new_mobile, code=otp, expires_at=expires))
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error('request_mobile_change: DB save failed: %s', exc)
+        return jsonify({'error': 'Failed to save OTP. Please try again.'}), 500
 
     return jsonify({'message': f'OTP sent to your {channel}', 'via': 'sms' if is_indian else 'email'})
 
