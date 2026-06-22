@@ -20,7 +20,7 @@ from flask_jwt_extended import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
-from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, Scholarship
+from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, BusinessAd, Scholarship
 from sms import generate_otp, send_otp_sms, send_otp_autogen
 from email_otp import send_otp_email
 
@@ -884,6 +884,57 @@ def delete_business(bp_id):
     user_id = int(get_jwt_identity())
     bp = BusinessProfile.query.filter_by(id=bp_id, user_id=user_id).first_or_404()
     db.session.delete(bp)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
+@app.route('/api/business/<int:bp_id>/ads', methods=['GET'])
+@jwt_required()
+def list_business_ads(bp_id):
+    ads = BusinessAd.query.filter_by(business_id=bp_id, active=True).order_by(BusinessAd.created_at.desc()).all()
+    return jsonify({'ads': [a.to_dict() for a in ads]})
+
+
+@app.route('/api/business/<int:bp_id>/ads', methods=['POST'])
+@jwt_required()
+def create_business_ad(bp_id):
+    user_id = int(get_jwt_identity())
+    bp = BusinessProfile.query.filter_by(id=bp_id, user_id=user_id).first_or_404()
+    data = request.get_json()
+    if not data.get('photo_filename'):
+        return jsonify({'error': 'photo_filename is required'}), 400
+    ad = BusinessAd(
+        business_id=bp.id,
+        photo_filename=data['photo_filename'],
+        title=data.get('title', '').strip() or None,
+        caption=data.get('caption', '').strip() or None,
+    )
+    db.session.add(ad)
+    db.session.commit()
+    return jsonify({'ad': ad.to_dict()}), 201
+
+
+@app.route('/api/business/<int:bp_id>/ads/<int:ad_id>', methods=['PUT'])
+@jwt_required()
+def update_business_ad(bp_id, ad_id):
+    user_id = int(get_jwt_identity())
+    bp = BusinessProfile.query.filter_by(id=bp_id, user_id=user_id).first_or_404()
+    ad = BusinessAd.query.filter_by(id=ad_id, business_id=bp.id).first_or_404()
+    data = request.get_json()
+    for f in ('title', 'caption', 'active'):
+        if f in data:
+            setattr(ad, f, data[f])
+    db.session.commit()
+    return jsonify({'ad': ad.to_dict()})
+
+
+@app.route('/api/business/<int:bp_id>/ads/<int:ad_id>', methods=['DELETE'])
+@jwt_required()
+def delete_business_ad(bp_id, ad_id):
+    user_id = int(get_jwt_identity())
+    bp = BusinessProfile.query.filter_by(id=bp_id, user_id=user_id).first_or_404()
+    ad = BusinessAd.query.filter_by(id=ad_id, business_id=bp.id).first_or_404()
+    db.session.delete(ad)
     db.session.commit()
     return jsonify({'message': 'Deleted'})
 

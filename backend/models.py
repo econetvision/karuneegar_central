@@ -307,6 +307,29 @@ class BusinessProfile(db.Model):
         }
 
 
+class BusinessAd(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    business_id = db.Column(db.Integer, db.ForeignKey('business_profile.id'), nullable=False)
+    photo_filename = db.Column(db.String(300), nullable=False)
+    title = db.Column(db.String(200))
+    caption = db.Column(db.Text)
+    active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    business = db.relationship('BusinessProfile', backref=db.backref('ads', lazy=True, cascade='all, delete-orphan'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'business_id': self.business_id,
+            'photo_filename': self.photo_filename,
+            'title': self.title,
+            'caption': self.caption,
+            'active': self.active,
+            'created_at': self.created_at.isoformat(),
+        }
+
+
 class OtpRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     mobile = db.Column(db.String(20), nullable=False, index=True)

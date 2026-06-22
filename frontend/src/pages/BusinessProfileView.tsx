@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
+import type { ChangeEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ChevronLeft, MapPin, Phone, Mail, Globe, Building2,
   Calendar, Users, Edit2, Tag, Camera, CheckCircle2,
+  Megaphone, Upload, Trash2, Loader2, X,
 } from 'lucide-react';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +31,14 @@ interface Business {
   owner_name?: string;
 }
 
+interface Ad {
+  id: number;
+  photo_filename: string;
+  title?: string;
+  caption?: string;
+  created_at: string;
+}
+
 export default function BusinessProfileView() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -40,6 +50,16 @@ export default function BusinessProfileView() {
   const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Ads state
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [showAdForm, setShowAdForm] = useState(false);
+  const [adForm, setAdForm] = useState({ title: '', caption: '' });
+  const [adPhotoFilename, setAdPhotoFilename] = useState('');
+  const [adPhotoPreview, setAdPhotoPreview] = useState('');
+  const [uploadingAd, setUploadingAd] = useState(false);
+  const [savingAd, setSavingAd] = useState(false);
+  const [adError, setAdError] = useState('');
+
   useEffect(() => {
     api.get(`/business/${id}`)
       .then((r) => {
@@ -47,7 +67,59 @@ export default function BusinessProfileView() {
         setLogoFilename(r.data.business?.logo_filename || '');
       })
       .finally(() => setLoading(false));
+    api.get(`/business/${id}/ads`).then((r) => setAds(r.data.ads)).catch(() => {});
   }, [id]);
+
+  const handleAdPhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAd(true);
+    setAdError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await api.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setAdPhotoFilename(r.data.filename);
+      setAdPhotoPreview(uploadUrl(r.data.filename));
+    } catch {
+      setAdError('Photo upload failed.');
+    } finally {
+      setUploadingAd(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleSaveAd = async () => {
+    if (!adPhotoFilename) { setAdError('Please upload a photo.'); return; }
+    setSavingAd(true);
+    setAdError('');
+    try {
+      const r = await api.post(`/business/${id}/ads`, {
+        photo_filename: adPhotoFilename,
+        title: adForm.title.trim() || undefined,
+        caption: adForm.caption.trim() || undefined,
+      });
+      setAds((prev) => [r.data.ad, ...prev]);
+      setShowAdForm(false);
+      setAdForm({ title: '', caption: '' });
+      setAdPhotoFilename('');
+      setAdPhotoPreview('');
+    } catch {
+      setAdError('Failed to save advertisement.');
+    } finally {
+      setSavingAd(false);
+    }
+  };
+
+  const handleDeleteAd = async (adId: number) => {
+    if (!window.confirm('Delete this advertisement?')) return;
+    try {
+      await api.delete(`/business/${id}/ads/${adId}`);
+      setAds((prev) => prev.filter((a) => a.id !== adId));
+    } catch {
+      alert('Failed to delete advertisement.');
+    }
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -266,6 +338,124 @@ export default function BusinessProfileView() {
               </Link>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Advertisements ─────────────────────────────────────── */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display font-bold text-lg text-gray-900 flex items-center gap-2">
+            <Megaphone size={18} className="text-saffron-500" />
+            Advertisements
+          </h2>
+          {isOwn && (
+            <button
+              onClick={() => { setShowAdForm((v) => !v); setAdError(''); }}
+              className="btn-outline flex items-center gap-2 text-sm"
+            >
+              {showAdForm ? <X size={14} /> : <Upload size={14} />}
+              {showAdForm ? 'Cancel' : 'Add Advertisement'}
+            </button>
+          )}
+        </div>
+
+        {/* Add-ad form */}
+        {isOwn && showAdForm && (
+          <div className="card p-6 mb-6 space-y-4">
+            <h3 className="font-semibold text-gray-800">New Advertisement</h3>
+
+            {/* Photo upload */}
+            <div>
+              <label className="label">Ad Photo *</label>
+              {adPhotoPreview ? (
+                <div className="relative inline-block">
+                  <img src={adPhotoPreview} alt="Ad preview" className="w-full max-h-64 object-cover rounded-xl border border-gray-200" />
+                  <button
+                    type="button"
+                    onClick={() => { setAdPhotoFilename(''); setAdPhotoPreview(''); }}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center gap-3 p-8 border-2 border-dashed border-saffron-200 rounded-2xl cursor-pointer hover:border-saffron-400 hover:bg-saffron-50 transition-all">
+                  {uploadingAd
+                    ? <Loader2 size={28} className="text-saffron-400 animate-spin" />
+                    : <Upload size={28} className="text-saffron-300" />}
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-700">{uploadingAd ? 'Uploading…' : 'Click to upload ad image'}</p>
+                    <p className="text-xs text-gray-400">JPG, PNG or WebP — landscape recommended</p>
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAdPhotoUpload} disabled={uploadingAd} />
+                </label>
+              )}
+            </div>
+
+            <div>
+              <label className="label">Title <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Grand Diwali Sale — 50% Off!"
+                value={adForm.title}
+                onChange={(e) => setAdForm((f) => ({ ...f, title: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="label">Caption <span className="text-gray-400 font-normal">(optional)</span></label>
+              <textarea
+                className="input min-h-[72px] resize-none"
+                placeholder="Short description or offer details…"
+                value={adForm.caption}
+                onChange={(e) => setAdForm((f) => ({ ...f, caption: e.target.value }))}
+              />
+            </div>
+
+            {adError && <p className="text-sm text-red-600">{adError}</p>}
+
+            <div className="flex gap-3">
+              <button onClick={handleSaveAd} disabled={savingAd || uploadingAd} className="btn-primary flex items-center gap-2">
+                {savingAd ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {savingAd ? 'Publishing…' : 'Publish Advertisement'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Ad cards */}
+        {ads.length === 0 && !isOwn && (
+          <p className="text-gray-400 text-sm text-center py-8">No advertisements posted yet.</p>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {ads.map((ad) => (
+            <div key={ad.id} className="card overflow-hidden group">
+              <div className="relative">
+                <img
+                  src={uploadUrl(ad.photo_filename)}
+                  alt={ad.title || 'Advertisement'}
+                  className="w-full object-cover max-h-64"
+                />
+                {isOwn && (
+                  <button
+                    onClick={() => handleDeleteAd(ad.id)}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    title="Delete ad"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+              {(ad.title || ad.caption) && (
+                <div className="p-4">
+                  {ad.title && <p className="font-semibold text-gray-900 text-sm">{ad.title}</p>}
+                  {ad.caption && <p className="text-gray-600 text-sm mt-1 leading-relaxed">{ad.caption}</p>}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
