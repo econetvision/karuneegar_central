@@ -205,6 +205,13 @@ class MatrimonyProfile(db.Model):
     raasi = db.Column(db.String(50))
     about = db.Column(db.Text)
     photo_filename = db.Column(db.String(300))
+    photos_json = db.Column(db.Text)        # JSON array of up to 5 filenames
+    birth_time = db.Column(db.String(20))   # e.g. "10:30 AM"
+    birth_place = db.Column(db.String(150))
+    horoscope_en = db.Column(db.Text)
+    horoscope_ta = db.Column(db.Text)
+    horoscope_te = db.Column(db.Text)
+    horoscope_kn = db.Column(db.Text)
     contact_email = db.Column(db.String(120))
     contact_phone = db.Column(db.String(20))
     phone_public = db.Column(db.Boolean, default=False)
@@ -212,8 +219,15 @@ class MatrimonyProfile(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self, full: bool = False, show_contact: bool = False):
+        import json as _json
         show_phone = full or self.phone_public
         show_email = full or show_contact
+        photos = []
+        if self.photos_json:
+            try:
+                photos = _json.loads(self.photos_json)
+            except Exception:
+                pass
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -231,6 +245,13 @@ class MatrimonyProfile(db.Model):
             'raasi': self.raasi,
             'about': self.about,
             'photo_filename': self.photo_filename,
+            'photos': photos,
+            'birth_time': self.birth_time,
+            'birth_place': self.birth_place,
+            'horoscope_en': self.horoscope_en,
+            'horoscope_ta': self.horoscope_ta,
+            'horoscope_te': self.horoscope_te,
+            'horoscope_kn': self.horoscope_kn,
             'contact_email': self.contact_email if show_email else None,
             'contact_phone': self.contact_phone if show_phone else _mask_mobile(self.contact_phone),
             'phone_public': self.phone_public,

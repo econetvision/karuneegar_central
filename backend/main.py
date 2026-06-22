@@ -1,6 +1,7 @@
 import os
 import re
 import uuid
+import json
 from datetime import datetime, timedelta, timezone
 
 _USERNAME_RE = re.compile(r'^[a-z0-9_]{3,30}$')
@@ -114,6 +115,7 @@ def create_app():
             _seed_forum_categories()
             _migrate_scholarship_columns()
             _migrate_member_id()
+            _migrate_matrimony_columns()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -174,6 +176,27 @@ def _migrate_scholarship_columns():
         for col, dtype in new_cols:
             try:
                 conn.execute(text(f'ALTER TABLE scholarship ADD COLUMN {col} {dtype}'))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
+
+def _migrate_matrimony_columns():
+    """Idempotently add horoscope and multi-photo columns to matrimony_profile."""
+    from sqlalchemy import text
+    new_cols = [
+        ('photos_json', 'TEXT'),
+        ('birth_time', 'VARCHAR(20)'),
+        ('birth_place', 'VARCHAR(150)'),
+        ('horoscope_en', 'TEXT'),
+        ('horoscope_ta', 'TEXT'),
+        ('horoscope_te', 'TEXT'),
+        ('horoscope_kn', 'TEXT'),
+    ]
+    with db.engine.connect() as conn:
+        for col, dtype in new_cols:
+            try:
+                conn.execute(text(f'ALTER TABLE matrimony_profile ADD COLUMN {col} {dtype}'))
                 conn.commit()
             except Exception:
                 conn.rollback()
@@ -622,6 +645,16 @@ def get_matrimony_profiles():
     })
 
 
+_MATRIMONY_SCALAR_FIELDS = [
+    'full_name', 'gender', 'seeking', 'age', 'height',
+    'education', 'occupation', 'salary_range', 'gothram',
+    'native_place', 'star', 'raasi', 'about',
+    'photo_filename', 'birth_time', 'birth_place',
+    'horoscope_en', 'horoscope_ta', 'horoscope_te', 'horoscope_kn',
+    'contact_email', 'contact_phone', 'phone_public',
+]
+
+
 @app.route('/api/matrimony', methods=['POST'])
 @jwt_required()
 def create_matrimony_profile():
@@ -635,13 +668,11 @@ def create_matrimony_profile():
         return jsonify({'error': 'Full name and gender are required'}), 400
 
     profile = MatrimonyProfile(user_id=user_id, **{
-        k: data.get(k) for k in [
-            'full_name', 'gender', 'seeking', 'age', 'height',
-            'education', 'occupation', 'salary_range', 'gothram',
-            'native_place', 'star', 'raasi', 'about',
-            'photo_filename', 'contact_email', 'contact_phone', 'phone_public',
-        ]
+        k: data.get(k) for k in _MATRIMONY_SCALAR_FIELDS
     })
+    photos = data.get('photos', [])
+    if isinstance(photos, list):
+        profile.photos_json = json.dumps(photos[:5])
     db.session.add(profile)
     db.session.commit()
     return jsonify({'profile': profile.to_dict(full=True)}), 201
@@ -662,17 +693,87 @@ def update_matrimony_profile(profile_id):
     profile = MatrimonyProfile.query.filter_by(id=profile_id, user_id=user_id).first_or_404()
     data = request.get_json()
 
-    for f in ['full_name', 'gender', 'seeking', 'age', 'height', 'education',
-              'occupation', 'salary_range', 'gothram', 'native_place', 'star',
-              'raasi', 'about', 'photo_filename', 'contact_email', 'contact_phone',
-              'active']:
+    for f in _MATRIMONY_SCALAR_FIELDS + ['active']:
         if f in data:
             setattr(profile, f, data[f])
     if 'phone_public' in data:
         profile.phone_public = bool(data['phone_public'])
+    if 'photos' in data and isinstance(data['photos'], list):
+        profile.photos_json = json.dumps(data['photos'][:5])
 
     db.session.commit()
     return jsonify({'profile': profile.to_dict(full=True)})
+
+
+@app.route('/api/matrimony/<int:profile_id>/generate-horoscope', methods=['POST'])
+@jwt_required()
+def generate_matrimony_horoscope(profile_id):
+    user_id = int(get_jwt_identity())
+    profile = MatrimonyProfile.query.filter_by(id=profile_id, user_id=user_id).first_or_404()
+
+    lang = request.args.get('lang', 'en').lower()
+    if lang not in ('en', 'ta', 'te', 'kn'):
+        return jsonify({'error': 'lang must be en, ta, te, or kn'}), 400
+
+    lang_names = {'en': 'English', 'ta': 'Tamil', 'te': 'Telugu', 'kn': 'Kannada'}
+
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '').strip()
+    if not api_key:
+        return jsonify({'error': 'AI horoscope generation is not configured on this server.'}), 503
+
+    try:
+        import anthropic as _anthropic
+        client = _anthropic.Anthropic(api_key=api_key)
+
+        details = []
+        if profile.full_name:  details.append(f"Name: {profile.full_name}")
+        if profile.gender:     details.append(f"Gender: {profile.gender}")
+        if profile.age:        details.append(f"Age: {profile.age}")
+        if profile.star:       details.append(f"Star (Nakshatra): {profile.star}")
+        if profile.raasi:      details.append(f"Raasi (Moon Sign): {profile.raasi}")
+        if profile.birth_time: details.append(f"Birth Time: {profile.birth_time}")
+        if profile.birth_place: details.append(f"Birth Place: {profile.birth_place}")
+        if profile.gothram:    details.append(f"Gothram: {profile.gothram}")
+        if profile.native_place: details.append(f"Native Place: {profile.native_place}")
+
+        profile_text = '\n'.join(details) if details else "No birth details provided."
+        target_lang = lang_names[lang]
+
+        prompt = f"""You are an expert Vedic astrologer and horoscope writer for the Karuneegar community matrimony portal.
+
+Generate a detailed jathakam/horoscope for this individual based on their birth details:
+
+{profile_text}
+
+Write a comprehensive horoscope in {target_lang} covering:
+1. Personality traits and character (based on star and raasi)
+2. Career and financial prospects
+3. Marriage compatibility — what kind of partner is ideal, best matching stars/raasis
+4. Health and general well-being
+5. Lucky numbers, colours, and days
+6. Overall life prediction and auspicious periods
+
+Important:
+- Write entirely in {target_lang} (use the {target_lang} script)
+- Make it positive, respectful, and suitable for a matrimony profile
+- Keep it around 300-400 words
+- Format with clear section headings
+- If birth time and place are missing, give a general reading based on star and raasi only"""
+
+        message = client.messages.create(
+            model='claude-sonnet-4-6',
+            max_tokens=1024,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+        horoscope_text = message.content[0].text
+
+        setattr(profile, f'horoscope_{lang}', horoscope_text)
+        db.session.commit()
+
+        return jsonify({'horoscope': horoscope_text, 'lang': lang})
+    except Exception as exc:
+        app.logger.error('Horoscope generation error: %s', exc)
+        return jsonify({'error': 'Failed to generate horoscope. Please try again.'}), 500
 
 
 @app.route('/api/matrimony/<int:profile_id>', methods=['DELETE'])
