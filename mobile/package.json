@@ -29,13 +29,18 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "babel-preset-expo": "~56.0.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "jest-expo": "~56.0.0",
+    "@testing-library/react-native": "^12.4.3",
+    "@testing-library/jest-native": "^5.4.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "private": true
 }
