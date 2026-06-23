@@ -20,14 +20,15 @@ from flask_jwt_extended import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
-from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, BusinessAd, Scholarship, Pilgrimage
+from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, BusinessAd, Scholarship, Pilgrimage, Event
 from sms import generate_otp, send_otp_sms, send_otp_autogen
 from email_otp import send_otp_email
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'webm', 'avi'}
+VIDEO_EXTENSIONS = {'mp4', 'mov', 'webm', 'avi'}
 
 
 def _register_cors(app):
@@ -452,12 +453,24 @@ def _upload_to_cloudinary(buf) -> str:
     """Upload image bytes to Cloudinary; returns secure_url. Raises on failure."""
     import cloudinary
     import cloudinary.uploader
-    # cloudinary auto-reads CLOUDINARY_URL env var — no manual config needed
     result = cloudinary.uploader.upload(
         buf,
         folder='karuneegar',
         resource_type='image',
         format='jpg',
+    )
+    return result['secure_url']
+
+
+def _upload_video_to_cloudinary(stream, ext: str) -> str:
+    """Upload video stream to Cloudinary; returns secure_url. Raises on failure."""
+    import cloudinary
+    import cloudinary.uploader
+    result = cloudinary.uploader.upload(
+        stream,
+        folder='karuneegar',
+        resource_type='video',
+        format=ext,
     )
     return result['secure_url']
 
@@ -471,6 +484,23 @@ def upload_file():
     if file.filename == '' or not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file type'}), 400
 
+    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+
+    # ── Video upload ──────────────────────────────────────────────────────────
+    if ext in VIDEO_EXTENSIONS:
+        if os.environ.get('CLOUDINARY_URL'):
+            try:
+                url = _upload_video_to_cloudinary(file.stream, ext)
+                return jsonify({'filename': url, 'media_type': 'video'}), 201
+            except Exception as exc:
+                app.logger.error('Cloudinary video upload error: %s', exc)
+                return jsonify({'error': 'Video upload failed'}), 500
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        return jsonify({'filename': filename, 'media_type': 'video'}), 201
+
+    # ── Image upload ──────────────────────────────────────────────────────────
     try:
         import io
         from PIL import Image
@@ -1309,6 +1339,74 @@ def delete_pilgrimage(pid):
     if p.user_id != user_id and not (user and user.is_admin):
         return jsonify({'error': 'Forbidden'}), 403
     p.active = False
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+# ─── Events ───────────────────────────────────────────────────────────────────
+
+@app.route('/api/events', methods=['GET'])
+@jwt_required()
+def list_events():
+    page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '')
+    query = Event.query.filter_by(active=True)
+    if q:
+        query = query.filter(Event.title.ilike(f'%{q}%'))
+    pg = query.order_by(Event.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
+    return jsonify({'events': [e.to_dict() for e in pg.items], 'page': pg.page, 'pages': pg.pages, 'total': pg.total})
+
+
+@app.route('/api/events/home', methods=['GET'])
+def events_home():
+    """Public endpoint — top 10 home-featured events for carousel."""
+    events = (Event.query
+              .filter_by(active=True, show_on_home=True)
+              .order_by(Event.created_at.desc())
+              .limit(10).all())
+    return jsonify({'events': [e.to_dict() for e in events]})
+
+
+@app.route('/api/events', methods=['POST'])
+@jwt_required()
+def create_event():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    if not data.get('title', '').strip():
+        return jsonify({'error': 'title is required'}), 400
+    ev = Event(
+        user_id=user_id,
+        title=data['title'].strip(),
+        description=data.get('description', ''),
+        event_date=data.get('event_date', ''),
+        contact_no=data.get('contact_no', ''),
+        donate_url=data.get('donate_url', ''),
+        register_url=data.get('register_url', ''),
+        media_filename=data.get('media_filename', ''),
+        media_type=data.get('media_type', 'photo'),
+        show_on_home=bool(data.get('show_on_home', False)),
+    )
+    db.session.add(ev)
+    db.session.commit()
+    return jsonify({'event': ev.to_dict()}), 201
+
+
+@app.route('/api/events/<int:eid>', methods=['GET'])
+@jwt_required()
+def get_event(eid):
+    ev = Event.query.filter_by(id=eid, active=True).first_or_404()
+    return jsonify({'event': ev.to_dict()})
+
+
+@app.route('/api/events/<int:eid>', methods=['DELETE'])
+@jwt_required()
+def delete_event(eid):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    ev = Event.query.filter_by(id=eid, active=True).first_or_404()
+    if ev.user_id != user_id and not (user and user.is_admin):
+        return jsonify({'error': 'Forbidden'}), 403
+    ev.active = False
     db.session.commit()
     return jsonify({'ok': True})
 

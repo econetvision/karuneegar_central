@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 
 const SERVICES = [
+  { label: 'Events', icon: 'calendar-outline', screen: 'Events', color: '#0ea5e9', bg: '#f0f9ff', desc: 'Community events & gatherings' },
   { label: 'Pilgrimages', icon: 'navigate-outline', screen: 'Pilgrimages', color: '#d97706', bg: '#fffbeb', desc: 'Bhakti trips & group tours' },
   { label: 'Scholarships', icon: 'school-outline', screen: 'Scholarships', color: '#3b82f6', bg: '#eff6ff', desc: 'Request or offer scholarships' },
   { label: 'Matrimony', icon: 'heart-outline', screen: 'Matrimony', color: '#f43f5e', bg: '#fff1f2', desc: 'Browse matrimony profiles' },

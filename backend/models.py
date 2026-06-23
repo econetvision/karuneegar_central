@@ -395,6 +395,42 @@ class Scholarship(db.Model):
         }
 
 
+class Event(db.Model):
+    id               = db.Column(db.Integer, primary_key=True)
+    user_id          = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title            = db.Column(db.String(200), nullable=False)
+    description      = db.Column(db.Text)
+    event_date       = db.Column(db.String(30))
+    contact_no       = db.Column(db.String(30))
+    donate_url       = db.Column(db.String(500))
+    register_url     = db.Column(db.String(500))
+    media_filename   = db.Column(db.String(300))
+    media_type       = db.Column(db.String(10), default='photo')
+    show_on_home     = db.Column(db.Boolean, default=False)
+    active           = db.Column(db.Boolean, default=True)
+    created_at       = db.Column(db.DateTime, default=datetime.utcnow)
+    user             = db.relationship('User', backref='events')
+
+    def to_dict(self):
+        return {
+            'id':              self.id,
+            'user_id':         self.user_id,
+            'poster_username': self.user.username if self.user else None,
+            'poster_name':     self.user.profile.full_name if self.user and self.user.profile else None,
+            'title':           self.title,
+            'description':     self.description,
+            'event_date':      self.event_date,
+            'contact_no':      self.contact_no,
+            'donate_url':      self.donate_url,
+            'register_url':    self.register_url,
+            'media_filename':  self.media_filename,
+            'media_type':      self.media_type or 'photo',
+            'show_on_home':    self.show_on_home,
+            'active':          self.active,
+            'created_at':      self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class Pilgrimage(db.Model):
     id               = db.Column(db.Integer, primary_key=True)
     user_id          = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
