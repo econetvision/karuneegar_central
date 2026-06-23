@@ -83,6 +83,7 @@ function ServicesStack() {
       <Stack.Screen name="FamilyTree" component={FamilyTreeScreen} options={{ title: 'Family Tree' }} />
       <Stack.Screen name="Forums" component={ForumsScreen} options={{ title: 'Forums' }} />
       <Stack.Screen name="Members" component={MembersScreen} options={{ title: 'Members' }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Stack.Navigator>
   );
 }
