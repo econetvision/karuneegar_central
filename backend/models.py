@@ -313,6 +313,7 @@ class BusinessAd(db.Model):
     photo_filename = db.Column(db.String(300), nullable=False)
     title = db.Column(db.String(200))
     caption = db.Column(db.Text)
+    show_on_home = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -325,8 +326,11 @@ class BusinessAd(db.Model):
             'photo_filename': self.photo_filename,
             'title': self.title,
             'caption': self.caption,
+            'show_on_home': self.show_on_home,
             'active': self.active,
             'created_at': self.created_at.isoformat(),
+            'business_name': self.business.company_name if self.business else None,
+            'business_logo': self.business.logo_filename if self.business else None,
         }
 
 

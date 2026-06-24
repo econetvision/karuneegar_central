@@ -29,6 +29,9 @@ export default function HomeScreen({ navigation }: any) {
   const [eventsLoading, setEventsLoading] = useState(true);
   const carouselRef = useRef<FlatList>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [ads, setAds] = useState<any[]>([]);
+  const adsRef = useRef<FlatList>(null);
+  const [adsIdx, setAdsIdx] = useState(0);
 
   useEffect(() => {
     api.get('/stats').then((r) => setStats(r.data)).catch(() => {});
@@ -36,9 +39,10 @@ export default function HomeScreen({ navigation }: any) {
       .then((r) => setEvents(r.data.events || []))
       .catch(() => setEvents([]))
       .finally(() => setEventsLoading(false));
+    api.get('/ads/home').then((r) => setAds(r.data.ads || [])).catch(() => {});
   }, []);
 
-  // Auto-scroll carousel every 4 seconds
+  // Auto-scroll events carousel every 4 seconds
   useEffect(() => {
     if (events.length < 2) return;
     const timer = setInterval(() => {
@@ -50,6 +54,19 @@ export default function HomeScreen({ navigation }: any) {
     }, 4000);
     return () => clearInterval(timer);
   }, [events.length]);
+
+  // Auto-scroll ads carousel every 4.5 seconds
+  useEffect(() => {
+    if (ads.length < 2) return;
+    const timer = setInterval(() => {
+      setAdsIdx((prev) => {
+        const next = (prev + 1) % ads.length;
+        adsRef.current?.scrollToIndex({ index: next, animated: true });
+        return next;
+      });
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [ads.length]);
 
   const fmtDate = (d?: string) => {
     if (!d) return null;
@@ -65,6 +82,26 @@ export default function HomeScreen({ navigation }: any) {
   const goToEvent = (id: number) => {
     navigation.getParent()?.navigate('Services', { screen: 'EventView', params: { id } });
   };
+
+  const renderAdCard = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={styles.adCard}
+      onPress={() => navigation.getParent()?.navigate('Services', { screen: 'BusinessProfile', params: { id: item.business_id } })}
+      activeOpacity={0.9}
+    >
+      <Image source={{ uri: uploadUrl(item.photo_filename) }} style={styles.adCardImg} resizeMode="cover" />
+      {(item.title || item.business_name) && (
+        <View style={styles.adCardOverlay}>
+          {item.business_name && (
+            <Text style={styles.adCardBiz} numberOfLines={1}>{item.business_name}</Text>
+          )}
+          {item.title && (
+            <Text style={styles.adCardTitle} numberOfLines={2}>{item.title}</Text>
+          )}
+        </View>
+      )}
+    </TouchableOpacity>
+  );
 
   const renderEventCard = ({ item }: { item: any }) => {
     const mediaUrl = item.media_filename ? uploadUrl(item.media_filename) : null;
@@ -150,6 +187,38 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       )}
 
+      {/* Ads Carousel */}
+      {ads.length > 0 && (
+        <View style={styles.carouselSection}>
+          <View style={styles.carouselHeader}>
+            <Text style={styles.sectionTitle}>Advertisements</Text>
+          </View>
+          <FlatList
+            ref={adsRef}
+            data={ads}
+            keyExtractor={(i) => `ad-${i.id}`}
+            renderItem={renderAdCard}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={CARD_W + 12}
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingHorizontal: spacing.md, gap: 12 }}
+            onScrollToIndexFailed={() => {}}
+            onMomentumScrollEnd={(e) => {
+              const idx = Math.round(e.nativeEvent.contentOffset.x / (CARD_W + 12));
+              setAdsIdx(idx);
+            }}
+          />
+          {ads.length > 1 && (
+            <View style={styles.dots}>
+              {ads.map((_, i) => (
+                <View key={i} style={[styles.dot, i === adsIdx && styles.dotActive]} />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
       {/* Stats */}
       <View style={styles.statsRow}>
         {[
@@ -221,4 +290,9 @@ const styles = StyleSheet.create({
   grid:               { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   serviceCard:        { width: '47%', borderRadius: radius.lg, padding: spacing.md, alignItems: 'center', justifyContent: 'center', minHeight: 90 },
   serviceLabel:       { marginTop: 8, fontSize: 14, fontWeight: '600', color: colors.text },
+  adCard:             { width: CARD_W, height: 180, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: '#1e293b' },
+  adCardImg:          { width: '100%', height: '100%' },
+  adCardOverlay:      { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: 'rgba(0,0,0,0.5)' },
+  adCardBiz:          { fontSize: 10, fontWeight: '700', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  adCardTitle:        { fontSize: 14, fontWeight: '700', color: '#fff' },
 });

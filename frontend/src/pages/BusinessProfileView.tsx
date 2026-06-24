@@ -36,6 +36,7 @@ interface Ad {
   photo_filename: string;
   title?: string;
   caption?: string;
+  show_on_home?: boolean;
   created_at: string;
 }
 
@@ -54,6 +55,7 @@ export default function BusinessProfileView() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [showAdForm, setShowAdForm] = useState(false);
   const [adForm, setAdForm] = useState({ title: '', caption: '' });
+  const [adShowOnHome, setAdShowOnHome] = useState(false);
   const [adPhotoFilename, setAdPhotoFilename] = useState('');
   const [adPhotoPreview, setAdPhotoPreview] = useState('');
   const [uploadingAd, setUploadingAd] = useState(false);
@@ -98,10 +100,12 @@ export default function BusinessProfileView() {
         photo_filename: adPhotoFilename,
         title: adForm.title.trim() || undefined,
         caption: adForm.caption.trim() || undefined,
+        show_on_home: adShowOnHome,
       });
       setAds((prev) => [r.data.ad, ...prev]);
       setShowAdForm(false);
       setAdForm({ title: '', caption: '' });
+      setAdShowOnHome(false);
       setAdPhotoFilename('');
       setAdPhotoPreview('');
     } catch {
@@ -413,6 +417,19 @@ export default function BusinessProfileView() {
               />
             </div>
 
+            <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-amber-50 hover:border-amber-300 transition-colors">
+              <input
+                type="checkbox"
+                checked={adShowOnHome}
+                onChange={(e) => setAdShowOnHome(e.target.checked)}
+                className="w-4 h-4 accent-saffron-600"
+              />
+              <div>
+                <p className="text-sm font-semibold text-gray-800">⭐ Show on Home Page</p>
+                <p className="text-xs text-gray-500">Feature this ad in the home page carousel</p>
+              </div>
+            </label>
+
             {adError && <p className="text-sm text-red-600">{adError}</p>}
 
             <div className="flex gap-3">
@@ -438,6 +455,11 @@ export default function BusinessProfileView() {
                   alt={ad.title || 'Advertisement'}
                   className="w-full object-cover max-h-64"
                 />
+                {ad.show_on_home && (
+                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-xs bg-amber-400/90 text-amber-900 font-semibold px-2 py-0.5 rounded-full">
+                    ⭐ Featured
+                  </span>
+                )}
                 {isOwn && (
                   <button
                     onClick={() => handleDeleteAd(ad.id)}

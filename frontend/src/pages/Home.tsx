@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, GitBranch, MessageSquare, Heart, ArrowRight, Star, MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, GitBranch, MessageSquare, Heart, ArrowRight, Star, MapPin, Calendar, ChevronLeft, ChevronRight, Megaphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 
@@ -16,18 +16,28 @@ export default function Home() {
   const [stats, setStats] = useState<Stats>({ members: 0, families: 0, forum_threads: 0, matrimony_profiles: 0 });
   const [homeEvents, setHomeEvents] = useState<any[]>([]);
   const [carouselIdx, setCarouselIdx] = useState(0);
+  const [homeAds, setHomeAds] = useState<any[]>([]);
+  const [adsIdx, setAdsIdx] = useState(0);
 
   useEffect(() => {
     api.get('/stats').then((r) => setStats(r.data)).catch(() => {});
     api.get('/events/home').then((r) => setHomeEvents(r.data.events || [])).catch(() => {});
+    api.get('/ads/home').then((r) => setHomeAds(r.data.ads || [])).catch(() => {});
   }, []);
 
-  // Auto-advance carousel
+  // Auto-advance events carousel
   useEffect(() => {
     if (homeEvents.length < 2) return;
     const timer = setInterval(() => setCarouselIdx((i) => (i + 1) % homeEvents.length), 4000);
     return () => clearInterval(timer);
   }, [homeEvents.length]);
+
+  // Auto-advance ads carousel
+  useEffect(() => {
+    if (homeAds.length < 2) return;
+    const timer = setInterval(() => setAdsIdx((i) => (i + 1) % homeAds.length), 4500);
+    return () => clearInterval(timer);
+  }, [homeAds.length]);
 
   const prev = () => setCarouselIdx((i) => (i - 1 + homeEvents.length) % homeEvents.length);
   const next = () => setCarouselIdx((i) => (i + 1) % homeEvents.length);
@@ -205,6 +215,87 @@ export default function Home() {
                     key={i}
                     onClick={() => setCarouselIdx(i)}
                     className={`h-1.5 rounded-full transition-all ${i === carouselIdx ? 'w-6 bg-saffron-400' : 'w-1.5 bg-white/30'}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Ads Carousel */}
+      {homeAds.length > 0 && (
+        <section className="bg-white border-b border-gray-100 py-10">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-display font-bold text-xl text-gray-900 flex items-center gap-2">
+                <Megaphone size={20} className="text-saffron-500" /> Community Advertisements
+              </h2>
+            </div>
+
+            <div className="relative overflow-hidden rounded-2xl shadow-md">
+              {/* Slides */}
+              <div
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${adsIdx * 100}%)` }}
+              >
+                {homeAds.map((ad) => {
+                  const mediaUrl = uploadUrl(ad.photo_filename);
+                  return (
+                    <div key={ad.id} className="relative flex-shrink-0 w-full h-64 md:h-80">
+                      <img src={mediaUrl} alt={ad.title || 'Advertisement'} className="w-full h-full object-cover" />
+                      {(ad.title || ad.caption || ad.business_name) && (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-6">
+                            {ad.business_name && (
+                              <p className="text-xs font-semibold text-saffron-300 uppercase tracking-wide mb-1">
+                                {ad.business_name}
+                              </p>
+                            )}
+                            {ad.title && (
+                              <h3 className="font-display font-bold text-lg md:text-xl text-white leading-tight">
+                                {ad.title}
+                              </h3>
+                            )}
+                            {ad.caption && (
+                              <p className="text-sm text-white/80 mt-1 line-clamp-2">{ad.caption}</p>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Prev/Next */}
+              {homeAds.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setAdsIdx((i) => (i - 1 + homeAds.length) % homeAds.length)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => setAdsIdx((i) => (i + 1) % homeAds.length)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Dots */}
+            {homeAds.length > 1 && (
+              <div className="flex justify-center gap-2 mt-4">
+                {homeAds.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setAdsIdx(i)}
+                    className={`h-1.5 rounded-full transition-all ${i === adsIdx ? 'w-6 bg-saffron-500' : 'w-1.5 bg-gray-300'}`}
                   />
                 ))}
               </div>

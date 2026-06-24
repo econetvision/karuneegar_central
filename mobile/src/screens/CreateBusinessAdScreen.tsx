@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator, Image,
+  StyleSheet, Alert, ActivityIndicator, Image, Switch,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ export default function CreateBusinessAdScreen({ navigation }: any) {
   const [loadingBiz, setLoadingBiz] = useState(true);
   const [title, setTitle] = useState('');
   const [caption, setCaption] = useState('');
+  const [showOnHome, setShowOnHome] = useState(false);
   const [photoFilename, setPhotoFilename] = useState('');
   const [photoUri, setPhotoUri] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -58,10 +59,11 @@ export default function CreateBusinessAdScreen({ navigation }: any) {
         photo_filename: photoFilename,
         title: title.trim() || undefined,
         caption: caption.trim() || undefined,
+        show_on_home: showOnHome,
       });
       Alert.alert('Published!', 'Your advertisement is now visible to community members.', [
         { text: 'View Business', onPress: () => navigation.navigate('BusinessProfile', { id: business.id }) },
-        { text: 'Add Another', onPress: () => { setPhotoFilename(''); setPhotoUri(''); setTitle(''); setCaption(''); } },
+        { text: 'Add Another', onPress: () => { setPhotoFilename(''); setPhotoUri(''); setTitle(''); setCaption(''); setShowOnHome(false); } },
       ]);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to publish. Please try again.');
@@ -154,6 +156,20 @@ export default function CreateBusinessAdScreen({ navigation }: any) {
           multiline
         />
 
+        {/* Show on Home toggle */}
+        <View style={styles.toggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.toggleLabel}>⭐ Show on Home Page</Text>
+            <Text style={styles.toggleHint}>Feature this ad in the home page carousel</Text>
+          </View>
+          <Switch
+            value={showOnHome}
+            onValueChange={setShowOnHome}
+            trackColor={{ false: colors.border, true: colors.primaryLight }}
+            thumbColor={showOnHome ? colors.primary : '#f4f3f4'}
+          />
+        </View>
+
         {!!error && (
           <View style={styles.errorBox}>
             <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
@@ -209,4 +225,7 @@ const styles = StyleSheet.create({
   publishBtnDisabled: { opacity: 0.55 },
   publishBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   footerNote: { fontSize: 12, color: colors.textMuted, textAlign: 'center', lineHeight: 18 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fffbeb', borderRadius: radius.md, padding: 12, borderWidth: 1, borderColor: '#fde68a' },
+  toggleLabel: { fontSize: 13, fontWeight: '700', color: colors.text },
+  toggleHint: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
 });

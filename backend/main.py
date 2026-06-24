@@ -118,6 +118,7 @@ def create_app():
             _migrate_scholarship_columns()
             _migrate_member_id()
             _migrate_matrimony_columns()
+            _migrate_business_ad_columns()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -181,6 +182,17 @@ def _migrate_scholarship_columns():
                 conn.commit()
             except Exception:
                 conn.rollback()
+
+
+def _migrate_business_ad_columns():
+    """Idempotently add show_on_home column to business_ad table."""
+    from sqlalchemy import text
+    with db.engine.connect() as conn:
+        try:
+            conn.execute(text('ALTER TABLE business_ad ADD COLUMN show_on_home BOOLEAN DEFAULT FALSE'))
+            conn.commit()
+        except Exception:
+            conn.rollback()
 
 
 def _migrate_matrimony_columns():
@@ -1132,6 +1144,7 @@ def create_business_ad(bp_id):
         photo_filename=data['photo_filename'],
         title=data.get('title', '').strip() or None,
         caption=data.get('caption', '').strip() or None,
+        show_on_home=bool(data.get('show_on_home', False)),
     )
     db.session.add(ad)
     db.session.commit()
@@ -1145,7 +1158,7 @@ def update_business_ad(bp_id, ad_id):
     bp = BusinessProfile.query.filter_by(id=bp_id, user_id=user_id).first_or_404()
     ad = BusinessAd.query.filter_by(id=ad_id, business_id=bp.id).first_or_404()
     data = request.get_json()
-    for f in ('title', 'caption', 'active'):
+    for f in ('title', 'caption', 'active', 'show_on_home'):
         if f in data:
             setattr(ad, f, data[f])
     db.session.commit()
@@ -1161,6 +1174,16 @@ def delete_business_ad(bp_id, ad_id):
     db.session.delete(ad)
     db.session.commit()
     return jsonify({'message': 'Deleted'})
+
+
+@app.route('/api/ads/home', methods=['GET'])
+def get_home_ads():
+    ads = (BusinessAd.query
+           .filter_by(show_on_home=True, active=True)
+           .order_by(BusinessAd.created_at.desc())
+           .limit(10)
+           .all())
+    return jsonify({'ads': [a.to_dict() for a in ads]})
 
 
 @app.route('/api/users/<username>/business', methods=['GET'])

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity, Linking, Alert, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity, Linking, Alert, TextInput, Switch } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import api, { uploadUrl } from '../api/client';
@@ -19,6 +19,7 @@ export default function BusinessProfileViewScreen({ route }: any) {
   const [adCaption, setAdCaption] = useState('');
   const [adPhotoFilename, setAdPhotoFilename] = useState('');
   const [adPhotoUri, setAdPhotoUri] = useState('');
+  const [adShowOnHome, setAdShowOnHome] = useState(false);
   const [uploadingAd, setUploadingAd] = useState(false);
   const [savingAd, setSavingAd] = useState(false);
   const [adError, setAdError] = useState('');
@@ -62,11 +63,13 @@ export default function BusinessProfileViewScreen({ route }: any) {
         photo_filename: adPhotoFilename,
         title: adTitle.trim() || undefined,
         caption: adCaption.trim() || undefined,
+        show_on_home: adShowOnHome,
       });
       setAds((prev) => [r.data.ad, ...prev]);
       setShowAdForm(false);
       setAdTitle(''); setAdCaption('');
       setAdPhotoFilename(''); setAdPhotoUri('');
+      setAdShowOnHome(false);
     } catch {
       setAdError('Failed to publish advertisement.');
     } finally {
@@ -206,6 +209,20 @@ export default function BusinessProfileViewScreen({ route }: any) {
               multiline
             />
 
+            {/* Show on Home toggle */}
+            <View style={styles.toggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.toggleLabel}>⭐ Show on Home Page</Text>
+                <Text style={styles.toggleHint}>Feature in home page carousel</Text>
+              </View>
+              <Switch
+                value={adShowOnHome}
+                onValueChange={setAdShowOnHome}
+                trackColor={{ false: colors.border, true: colors.primaryLight }}
+                thumbColor={adShowOnHome ? colors.primary : '#f4f3f4'}
+              />
+            </View>
+
             {!!adError && <Text style={styles.adError}>{adError}</Text>}
 
             <TouchableOpacity
@@ -227,7 +244,14 @@ export default function BusinessProfileViewScreen({ route }: any) {
         )}
         {ads.map((ad) => (
           <View key={ad.id} style={styles.adCard}>
-            <Image source={{ uri: uploadUrl(ad.photo_filename) }} style={styles.adImage} resizeMode="cover" />
+            <View style={{ position: 'relative' }}>
+              <Image source={{ uri: uploadUrl(ad.photo_filename) }} style={styles.adImage} resizeMode="cover" />
+              {ad.show_on_home && (
+                <View style={styles.featuredBadge}>
+                  <Text style={styles.featuredBadgeText}>⭐ Featured</Text>
+                </View>
+              )}
+            </View>
             {(ad.title || ad.caption) && (
               <View style={styles.adBody}>
                 {ad.title && <Text style={styles.adTitle}>{ad.title}</Text>}
@@ -289,4 +313,9 @@ const styles = StyleSheet.create({
   adCaption: { fontSize: 13, color: colors.textMuted, marginTop: 4, lineHeight: 19 },
   adDeleteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#fee2e2' },
   adDeleteBtnText: { fontSize: 12, color: '#ef4444', fontWeight: '600' },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fffbeb', borderRadius: radius.md, padding: 12, borderWidth: 1, borderColor: '#fde68a' },
+  toggleLabel: { fontSize: 13, fontWeight: '700', color: colors.text },
+  toggleHint: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  featuredBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(251,191,36,0.9)', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
+  featuredBadgeText: { fontSize: 11, fontWeight: '700', color: '#78350f' },
 });
