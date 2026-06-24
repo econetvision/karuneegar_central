@@ -32,6 +32,7 @@ export default function HomeScreen({ navigation }: any) {
   const [ads, setAds] = useState<any[]>([]);
   const adsRef = useRef<FlatList>(null);
   const [adsIdx, setAdsIdx] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     api.get('/stats').then((r) => setStats(r.data)).catch(() => {});
@@ -40,7 +41,10 @@ export default function HomeScreen({ navigation }: any) {
       .catch(() => setEvents([]))
       .finally(() => setEventsLoading(false));
     api.get('/ads/home').then((r) => setAds(r.data.ads || [])).catch(() => {});
-  }, []);
+    if (user) {
+      api.get('/notifications/unread-count').then((r) => setUnreadCount(r.data.count || 0)).catch(() => {});
+    }
+  }, [user]);
 
   // Auto-scroll events carousel every 4 seconds
   useEffect(() => {
@@ -136,7 +140,22 @@ export default function HomeScreen({ navigation }: any) {
     <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
       {/* Hero */}
       <View style={styles.hero}>
-        <Text style={styles.heroTagline}>🙏 Karuneegar Community</Text>
+        <View style={styles.heroTopRow}>
+          <Text style={styles.heroTagline}>🙏 Karuneegar Community</Text>
+          {user && (
+            <TouchableOpacity
+              style={styles.bellWrap}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <Ionicons name="notifications-outline" size={22} color="#fff" />
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
         <Text style={styles.heroTitle}>Karuneegar{'\n'}<Text style={styles.heroAccent}>Central</Text></Text>
         <Text style={styles.heroSubtitle}>Connecting the community — members, families, businesses & more.</Text>
         {user && (
@@ -260,7 +279,11 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   scroll:             { flex: 1, backgroundColor: colors.background },
   hero:               { backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingTop: 50, paddingBottom: 30 },
-  heroTagline:        { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 8 },
+  heroTopRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  heroTagline:        { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+  bellWrap:           { position: 'relative', padding: 4 },
+  bellBadge:          { position: 'absolute', top: 0, right: 0, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
+  bellBadgeText:      { color: '#fff', fontSize: 9, fontWeight: '700' },
   heroTitle:          { fontSize: 36, fontWeight: '800', color: '#fff', lineHeight: 42, marginBottom: 10 },
   heroAccent:         { color: '#fde68a' },
   heroSubtitle:       { color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 20, marginBottom: 14 },

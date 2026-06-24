@@ -26,6 +26,7 @@ import Pilgrimages from './pages/Pilgrimages';
 import PilgrimageView from './pages/PilgrimageView';
 import Events from './pages/Events';
 import EventView from './pages/EventView';
+import Notifications from './pages/Notifications';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -84,6 +85,7 @@ export default function App() {
           <Route path="/scholarships" element={<Layout><PrivateRoute><Scholarship /></PrivateRoute></Layout>} />
           <Route path="/events" element={<Layout><PrivateRoute><Events /></PrivateRoute></Layout>} />
           <Route path="/events/:id" element={<Layout><PrivateRoute><EventView /></PrivateRoute></Layout>} />
+          <Route path="/notifications" element={<Layout><PrivateRoute><Notifications /></PrivateRoute></Layout>} />
           <Route path="/pilgrimages" element={<Layout><PrivateRoute><Pilgrimages /></PrivateRoute></Layout>} />
           <Route path="/pilgrimages/:id" element={<Layout><PrivateRoute><PilgrimageView /></PrivateRoute></Layout>} />
           <Route path="/businesses" element={<Layout><PrivateRoute><Businesses /></PrivateRoute></Layout>} />

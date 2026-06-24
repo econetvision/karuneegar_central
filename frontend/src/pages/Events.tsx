@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Calendar, Phone, Plus, X, Upload, BadgeCheck,
-  Heart, UserCheck, Video, ChevronRight,
+  Heart, UserCheck, Video, ChevronRight, Bell, BellOff, User,
 } from 'lucide-react';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +13,7 @@ interface EventItem {
   description?: string;
   event_date?: string;
   contact_no?: string;
+  organizer_name?: string;
   donate_url?: string;
   register_url?: string;
   media_filename?: string;
@@ -25,7 +26,7 @@ interface EventItem {
 
 const EMPTY = {
   title: '', description: '', event_date: '',
-  contact_no: '', donate_url: '', register_url: '',
+  contact_no: '', organizer_name: '', donate_url: '', register_url: '',
   media_filename: '', media_type: 'photo', show_on_home: false,
 };
 
@@ -39,6 +40,8 @@ export default function Events() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const [subscribed, setSubscribed] = useState(false);
+  const [subLoading, setSubLoading] = useState(false);
 
   const fetchItems = () => {
     setLoading(true);
@@ -48,7 +51,29 @@ export default function Events() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => {
+    fetchItems();
+    if (user) {
+      api.get('/events/subscription')
+        .then((r) => setSubscribed(r.data.subscribed))
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const toggleSubscription = async () => {
+    setSubLoading(true);
+    try {
+      if (subscribed) {
+        await api.delete('/events/subscribe');
+        setSubscribed(false);
+      } else {
+        await api.post('/events/subscribe');
+        setSubscribed(true);
+      }
+    } finally {
+      setSubLoading(false);
+    }
+  };
 
   const set = (k: string) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -107,12 +132,29 @@ export default function Events() {
           </h1>
           <p className="text-gray-500 mt-1">Community events, gatherings and celebrations.</p>
         </div>
-        {user && (
-          <button onClick={() => { setShowForm(true); setError(''); setForm({ ...EMPTY }); }}
-            className="btn-primary flex items-center gap-2 flex-shrink-0">
-            <Plus size={16} /> Post Event
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {user && (
+            <button
+              onClick={toggleSubscription}
+              disabled={subLoading}
+              title={subscribed ? 'Unsubscribe from new event alerts' : 'Subscribe to get notified of new events'}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                subscribed
+                  ? 'bg-saffron-50 border-saffron-300 text-saffron-700 hover:bg-saffron-100'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-saffron-300 hover:text-saffron-600'
+              }`}
+            >
+              {subscribed ? <Bell size={15} className="fill-saffron-500 text-saffron-500" /> : <BellOff size={15} />}
+              {subscribed ? 'Subscribed' : 'Subscribe'}
+            </button>
+          )}
+          {user && (
+            <button onClick={() => { setShowForm(true); setError(''); setForm({ ...EMPTY }); }}
+              className="btn-primary flex items-center gap-2">
+              <Plus size={16} /> Post Event
+            </button>
+          )}
+        </div>
       </div>
 
       {/* List */}
@@ -170,6 +212,11 @@ export default function Events() {
                     {ev.event_date && (
                       <span className="flex items-center gap-1">
                         <Calendar size={12} className="text-saffron-500" /> {fmtDate(ev.event_date)}
+                      </span>
+                    )}
+                    {ev.organizer_name && (
+                      <span className="flex items-center gap-1">
+                        <User size={12} className="text-saffron-500" /> {ev.organizer_name}
                       </span>
                     )}
                     {ev.contact_no && (
@@ -280,6 +327,10 @@ export default function Events() {
                 <div>
                   <label className="label flex items-center gap-1"><Phone size={13} className="text-gray-400" /> Contact Number</label>
                   <input type="tel" className="input" placeholder="+919876543210" value={form.contact_no} onChange={set('contact_no')} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label flex items-center gap-1"><User size={13} className="text-gray-400" /> Organizer Name</label>
+                  <input className="input" placeholder="e.g. Sri Karuneegar Seva Trust" value={form.organizer_name} onChange={set('organizer_name')} />
                 </div>
               </div>
 

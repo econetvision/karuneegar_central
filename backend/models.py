@@ -406,6 +406,7 @@ class Event(db.Model):
     description      = db.Column(db.Text)
     event_date       = db.Column(db.String(30))
     contact_no       = db.Column(db.String(30))
+    organizer_name   = db.Column(db.String(200))
     donate_url       = db.Column(db.String(500))
     register_url     = db.Column(db.String(500))
     media_filename   = db.Column(db.String(300))
@@ -425,6 +426,7 @@ class Event(db.Model):
             'description':     self.description,
             'event_date':      self.event_date,
             'contact_no':      self.contact_no,
+            'organizer_name':  self.organizer_name,
             'donate_url':      self.donate_url,
             'register_url':    self.register_url,
             'media_filename':  self.media_filename,
@@ -433,6 +435,25 @@ class Event(db.Model):
             'active':          self.active,
             'created_at':      self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class EventSubscription(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user       = db.relationship('User', backref=db.backref('event_subscription', uselist=False))
+
+
+class Notification(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title      = db.Column(db.String(200), nullable=False)
+    body       = db.Column(db.Text)
+    event_id   = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=True)
+    read       = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user       = db.relationship('User', backref='notifications')
+    event      = db.relationship('Event', backref='notifications')
 
 
 class Pilgrimage(db.Model):

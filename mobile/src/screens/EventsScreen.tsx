@@ -15,6 +15,7 @@ interface EventItem {
   description?: string;
   event_date?: string;
   contact_no?: string;
+  organizer_name?: string;
   donate_url?: string;
   register_url?: string;
   media_filename?: string;
@@ -27,7 +28,7 @@ interface EventItem {
 
 const EMPTY = {
   title: '', description: '', event_date: '',
-  contact_no: '', donate_url: '', register_url: '',
+  contact_no: '', organizer_name: '', donate_url: '', register_url: '',
   media_filename: '', media_type: 'photo', show_on_home: false,
 };
 
@@ -39,6 +40,8 @@ export default function EventsScreen({ navigation }: any) {
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+  const [subLoading, setSubLoading] = useState(false);
 
   const fetchItems = () => {
     setLoading(true);
@@ -48,7 +51,31 @@ export default function EventsScreen({ navigation }: any) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => {
+    fetchItems();
+    if (user) {
+      api.get('/events/subscription').then((r) => setSubscribed(r.data.subscribed)).catch(() => {});
+    }
+  }, []);
+
+  const toggleSubscription = async () => {
+    setSubLoading(true);
+    try {
+      if (subscribed) {
+        await api.delete('/events/subscribe');
+        setSubscribed(false);
+        Alert.alert('Unsubscribed', 'You will no longer receive event notifications.');
+      } else {
+        await api.post('/events/subscribe');
+        setSubscribed(true);
+        Alert.alert('Subscribed!', 'You will be notified when new events are posted.');
+      }
+    } catch {
+      Alert.alert('Error', 'Could not update subscription. Please try again.');
+    } finally {
+      setSubLoading(false);
+    }
+  };
 
   const setF = (k: string) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -137,6 +164,12 @@ export default function EventsScreen({ navigation }: any) {
               <Text style={styles.metaText}>{fmtDate(item.event_date)}</Text>
             </View>
           )}
+          {item.organizer_name && (
+            <View style={styles.metaRow}>
+              <Ionicons name="person-outline" size={13} color={colors.primary} />
+              <Text style={styles.metaText}>{item.organizer_name}</Text>
+            </View>
+          )}
           {item.contact_no && (
             <View style={styles.metaRow}>
               <Ionicons name="call-outline" size={13} color={colors.primary} />
@@ -162,15 +195,28 @@ export default function EventsScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.heading}>🎉 Events</Text>
           <Text style={styles.subheading}>Community events & gatherings</Text>
         </View>
         {user && (
-          <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
-            <Ionicons name="add" size={20} color="#fff" />
-            <Text style={styles.addBtnText}>Post Event</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.bellBtn, subscribed && styles.bellBtnActive]}
+              onPress={toggleSubscription}
+              disabled={subLoading}
+            >
+              <Ionicons
+                name={subscribed ? 'notifications' : 'notifications-outline'}
+                size={18}
+                color={subscribed ? colors.primary : colors.textMuted}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
+              <Ionicons name="add" size={20} color="#fff" />
+              <Text style={styles.addBtnText}>Post Event</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -249,6 +295,9 @@ export default function EventsScreen({ navigation }: any) {
 
             <Text style={styles.label}>Contact Number</Text>
             <TextInput style={styles.input} placeholder="+919876543210" keyboardType="phone-pad" value={form.contact_no} onChangeText={setF('contact_no')} />
+
+            <Text style={styles.label}>Organizer Name</Text>
+            <TextInput style={styles.input} placeholder="e.g. Sri Karuneegar Seva Trust" value={form.organizer_name} onChangeText={setF('organizer_name')} />
 
             <Text style={styles.label}>Description</Text>
             <TextInput
@@ -335,4 +384,6 @@ const styles = StyleSheet.create({
   switchDesc:     { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   submitBtn:      { backgroundColor: colors.primary, borderRadius: radius.md, padding: 14, alignItems: 'center', marginTop: spacing.lg },
   submitBtnText:  { color: '#fff', fontWeight: '700', fontSize: 16 },
+  bellBtn:        { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card },
+  bellBtnActive:  { borderColor: colors.primary, backgroundColor: '#fff7ed' },
 });

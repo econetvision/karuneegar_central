@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, User, LogOut, ChevronDown, Languages } from 'lucide-react';
+import { Menu, X, User, LogOut, ChevronDown, Languages, Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogoIcon } from './KarunegarLogo';
 import { useTranslation } from 'react-i18next';
+import api from '../api/client';
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -19,6 +20,18 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setUnreadCount(0); return; }
+    const fetch = () =>
+      api.get('/notifications/unread-count')
+        .then((r) => setUnreadCount(r.data.count || 0))
+        .catch(() => {});
+    fetch();
+    const t = setInterval(fetch, 30000);
+    return () => clearInterval(t);
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -105,7 +118,23 @@ export default function Navbar() {
               )}
             </div>
 
-            {user ? (
+            {user && (
+              <Link
+                to="/notifications"
+                onClick={() => setUnreadCount(0)}
+                className="relative p-2 rounded-lg text-gray-600 hover:text-saffron-600 hover:bg-saffron-50 transition-colors"
+                title="Notifications"
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
+          {user ? (
               <div className="relative">
                 <button
                   onClick={() => setDropOpen(!dropOpen)}

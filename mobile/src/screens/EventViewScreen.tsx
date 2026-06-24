@@ -77,6 +77,13 @@ export default function EventViewScreen({ navigation, route }: any) {
           </View>
         )}
 
+        {event.organizer_name ? (
+          <View style={styles.chip}>
+            <Ionicons name="person-outline" size={15} color="#3b82f6" />
+            <Text style={[styles.chipText, { color: '#3b82f6' }]}>{event.organizer_name}</Text>
+          </View>
+        ) : null}
+
         {event.poster_name && (
           <Text style={styles.poster}>Posted by {event.poster_name} (@{event.poster_username})</Text>
         )}

@@ -20,7 +20,7 @@ from flask_jwt_extended import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
-from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, BusinessAd, Scholarship, Pilgrimage, Event
+from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, BusinessAd, Scholarship, Pilgrimage, Event, EventSubscription, Notification
 from sms import generate_otp, send_otp_sms, send_otp_autogen
 from email_otp import send_otp_email
 
@@ -119,6 +119,7 @@ def create_app():
             _migrate_member_id()
             _migrate_matrimony_columns()
             _migrate_business_ad_columns()
+            _migrate_event_columns()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -190,6 +191,17 @@ def _migrate_business_ad_columns():
     with db.engine.connect() as conn:
         try:
             conn.execute(text('ALTER TABLE business_ad ADD COLUMN show_on_home BOOLEAN DEFAULT FALSE'))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+
+def _migrate_event_columns():
+    """Idempotently add organizer_name column to event table."""
+    from sqlalchemy import text
+    with db.engine.connect() as conn:
+        try:
+            conn.execute(text('ALTER TABLE event ADD COLUMN organizer_name VARCHAR(200)'))
             conn.commit()
         except Exception:
             conn.rollback()
@@ -1403,6 +1415,7 @@ def create_event():
         description=data.get('description', ''),
         event_date=data.get('event_date', ''),
         contact_no=data.get('contact_no', ''),
+        organizer_name=data.get('organizer_name', ''),
         donate_url=data.get('donate_url', ''),
         register_url=data.get('register_url', ''),
         media_filename=data.get('media_filename', ''),
@@ -1411,6 +1424,25 @@ def create_event():
     )
     db.session.add(ev)
     db.session.commit()
+
+    # fan out in-app notifications to all subscribers
+    try:
+        subs = EventSubscription.query.all()
+        notes = [
+            Notification(
+                user_id=s.user_id,
+                title=f'New Event: {ev.title}',
+                body=(ev.description or '')[:120] or None,
+                event_id=ev.id,
+            )
+            for s in subs if s.user_id != user_id
+        ]
+        if notes:
+            db.session.add_all(notes)
+            db.session.commit()
+    except Exception:
+        pass
+
     return jsonify({'event': ev.to_dict()}), 201
 
 
@@ -1430,6 +1462,74 @@ def delete_event(eid):
     if ev.user_id != user_id and not (user and user.is_admin):
         return jsonify({'error': 'Forbidden'}), 403
     ev.active = False
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+# ─── Event Subscriptions ──────────────────────────────────────────────────────
+
+@app.route('/api/events/subscription', methods=['GET'])
+@jwt_required()
+def get_event_subscription():
+    user_id = int(get_jwt_identity())
+    sub = EventSubscription.query.filter_by(user_id=user_id).first()
+    return jsonify({'subscribed': sub is not None})
+
+
+@app.route('/api/events/subscribe', methods=['POST'])
+@jwt_required()
+def subscribe_events():
+    user_id = int(get_jwt_identity())
+    if not EventSubscription.query.filter_by(user_id=user_id).first():
+        db.session.add(EventSubscription(user_id=user_id))
+        db.session.commit()
+    return jsonify({'subscribed': True})
+
+
+@app.route('/api/events/subscribe', methods=['DELETE'])
+@jwt_required()
+def unsubscribe_events():
+    user_id = int(get_jwt_identity())
+    sub = EventSubscription.query.filter_by(user_id=user_id).first()
+    if sub:
+        db.session.delete(sub)
+        db.session.commit()
+    return jsonify({'subscribed': False})
+
+
+# ─── Notifications ─────────────────────────────────────────────────────────────
+
+@app.route('/api/notifications', methods=['GET'])
+@jwt_required()
+def list_notifications():
+    user_id = int(get_jwt_identity())
+    notes = (Notification.query
+             .filter_by(user_id=user_id)
+             .order_by(Notification.created_at.desc())
+             .limit(50).all())
+    return jsonify({'notifications': [{
+        'id': n.id,
+        'title': n.title,
+        'body': n.body,
+        'event_id': n.event_id,
+        'read': n.read,
+        'created_at': n.created_at.isoformat(),
+    } for n in notes]})
+
+
+@app.route('/api/notifications/unread-count', methods=['GET'])
+@jwt_required()
+def notifications_unread_count():
+    user_id = int(get_jwt_identity())
+    count = Notification.query.filter_by(user_id=user_id, read=False).count()
+    return jsonify({'count': count})
+
+
+@app.route('/api/notifications/read-all', methods=['PUT'])
+@jwt_required()
+def mark_notifications_read():
+    user_id = int(get_jwt_identity())
+    Notification.query.filter_by(user_id=user_id, read=False).update({'read': True})
     db.session.commit()
     return jsonify({'ok': True})
 

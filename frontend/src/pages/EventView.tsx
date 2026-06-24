@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Calendar, Phone, Heart, UserCheck, ArrowLeft, Trash2, ExternalLink } from 'lucide-react';
+import { Calendar, Phone, Heart, UserCheck, ArrowLeft, Trash2, ExternalLink, User } from 'lucide-react';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -77,10 +77,15 @@ export default function EventView() {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-3 mb-6">
+          <div className="flex flex-wrap gap-3 mb-4">
             {event.event_date && (
               <span className="inline-flex items-center gap-1.5 bg-saffron-50 text-saffron-700 text-sm font-medium px-3 py-1.5 rounded-full">
                 <Calendar size={14} /> {fmtDate(event.event_date)}
+              </span>
+            )}
+            {event.organizer_name && (
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-sm font-medium px-3 py-1.5 rounded-full">
+                <User size={14} /> {event.organizer_name}
               </span>
             )}
             {event.show_on_home && (

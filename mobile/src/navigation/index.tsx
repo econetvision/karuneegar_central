@@ -36,6 +36,7 @@ import PilgrimagesScreen from '../screens/PilgrimagesScreen';
 import PilgrimageViewScreen from '../screens/PilgrimageViewScreen';
 import EventsScreen from '../screens/EventsScreen';
 import EventViewScreen from '../screens/EventViewScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -52,6 +53,7 @@ function HomeStack() {
     <Stack.Navigator screenOptions={headerStyle}>
       <Stack.Screen name="HomeMain" component={HomeScreen} options={{ title: 'Karuneegar Central' }} />
       <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About Us' }} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
     </Stack.Navigator>
   );
 }
