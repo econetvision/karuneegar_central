@@ -807,6 +807,24 @@ def admin_delete_member(uid):
     if uid == user_id:
         return jsonify({'error': 'Cannot delete your own account'}), 400
     target = User.query.get_or_404(uid)
+    # Collect IDs of records owned by this user that others may reference
+    event_ids = [r.id for r in Event.query.filter_by(user_id=uid).with_entities(Event.id).all()]
+    thread_ids = [r.id for r in ForumThread.query.filter_by(user_id=uid).with_entities(ForumThread.id).all()]
+    # Delete other users' notifications referencing this user's events
+    if event_ids:
+        Notification.query.filter(Notification.event_id.in_(event_ids)).delete(synchronize_session=False)
+    # Delete other users' replies in this user's threads
+    if thread_ids:
+        ForumReply.query.filter(ForumReply.thread_id.in_(thread_ids)).delete(synchronize_session=False)
+    # Delete all remaining records with direct user_id FK
+    Notification.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    EventSubscription.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Event.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Scholarship.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    Pilgrimage.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ForumReply.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    ForumThread.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    db.session.expire_all()
     db.session.delete(target)
     db.session.commit()
     return jsonify({'ok': True})
