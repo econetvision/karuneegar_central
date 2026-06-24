@@ -9,6 +9,7 @@
     "scholarships": "Scholarships",
     "events": "Events",
     "pilgrimages": "Pilgrimages",
+    "bhakti": "Bhakti",
     "about": "About",
     "login": "Login",
     "joinNow": "Join Now",
@@ -434,5 +435,16 @@
     "ctaTitle": "Proud to Be Karuneegar?",
     "ctaDesc": "Join Karuneegar Central — your digital home to connect with family, preserve heritage, and build a stronger community.",
     "joinNow": "Join Now"
+  },
+  "bhakti": {
+    "title": "Bhakti",
+    "subtitle": "Devotional videos from the Vallalar channel",
+    "source": "Vallalar YouTube Channel",
+    "watchNow": "Watch Now",
+    "watchOnYoutube": "Watch on YouTube",
+    "noVideos": "No videos available",
+    "noVideosDesc": "Check back soon for devotional content.",
+    "notConfigured": "Bhakti videos not configured",
+    "notConfiguredDesc": "Please set the YOUTUBE_API_KEY environment variable to enable this feature."
   }
 }

@@ -395,5 +395,16 @@
   "services": {
     "title": "ಸಮುದಾಯ ಸೇವೆಗಳು",
     "subtitle": "ಕರುಣೀಗರ ಸಮುದಾಯ ಒದಗಿಸುವ ಎಲ್ಲಾ ಸೇವೆಗಳು"
+  },
+  "bhakti": {
+    "title": "ಭಕ್ತಿ",
+    "subtitle": "ವಲ್ಲಲಾರ್ ಚಾನೆಲ್‌ನಿಂದ ಭಕ್ತಿ ವೀಡಿಯೋಗಳು",
+    "source": "ವಲ್ಲಲಾರ್ YouTube ಚಾನೆಲ್",
+    "watchNow": "ಈಗ ನೋಡಿ",
+    "watchOnYoutube": "YouTube ನಲ್ಲಿ ನೋಡಿ",
+    "noVideos": "ವೀಡಿಯೋಗಳಿಲ್ಲ",
+    "noVideosDesc": "ಶೀಘ್ರದಲ್ಲೇ ಭಕ್ತಿ ವಿಷಯ ಬರುತ್ತದೆ.",
+    "notConfigured": "ಭಕ್ತಿ ವೀಡಿಯೋಗಳು ಕಾನ್ಫಿಗರ್ ಆಗಿಲ್ಲ",
+    "notConfiguredDesc": "YOUTUBE_API_KEY ಹೊಂದಿಸಿ."
   }
 }

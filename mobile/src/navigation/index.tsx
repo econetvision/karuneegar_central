@@ -38,6 +38,7 @@ import PilgrimageViewScreen from '../screens/PilgrimageViewScreen';
 import EventsScreen from '../screens/EventsScreen';
 import EventViewScreen from '../screens/EventViewScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import BhaktiScreen from '../screens/BhaktiScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -96,6 +97,7 @@ function ServicesStack() {
       <Stack.Screen name="CreateBusinessAd" component={CreateBusinessAdScreen} options={{ title: 'Create Advertisement' }} />
       <Stack.Screen name="FamilyTree" component={FamilyTreeScreen} options={{ title: 'Family Tree' }} />
       <Stack.Screen name="Forums" component={ForumsScreen} options={{ title: 'Forums' }} />
+      <Stack.Screen name="Bhakti" component={BhaktiScreen} options={{ title: 'Bhakti' }} />
       <Stack.Screen name="Members" component={MembersScreen} options={{ title: 'Members' }} />
       <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Stack.Navigator>

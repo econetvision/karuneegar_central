@@ -27,6 +27,7 @@ import PilgrimageView from './pages/PilgrimageView';
 import Events from './pages/Events';
 import EventView from './pages/EventView';
 import Notifications from './pages/Notifications';
+import Bhakti from './pages/Bhakti';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="/businesses" element={<Layout><PrivateRoute><Businesses /></PrivateRoute></Layout>} />
           <Route path="/business/edit" element={<Layout><PrivateRoute><EditBusiness /></PrivateRoute></Layout>} />
           <Route path="/business/:id" element={<Layout><PrivateRoute><BusinessProfileView /></PrivateRoute></Layout>} />
+          <Route path="/bhakti" element={<Layout><PrivateRoute><Bhakti /></PrivateRoute></Layout>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

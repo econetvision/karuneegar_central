@@ -11,6 +11,7 @@ const SERVICES = [
   { label: 'Businesses', icon: 'briefcase-outline', screen: 'Businesses', color: '#f97316', bg: '#fff7ed', desc: 'Discover member businesses' },
   { label: 'Family Tree', icon: 'git-branch-outline', screen: 'FamilyTree', color: '#8b5cf6', bg: '#f5f3ff', desc: 'Build your family tree' },
   { label: 'Forums', icon: 'chatbubbles-outline', screen: 'Forums', color: '#16a34a', bg: '#f0fdf4', desc: 'Discuss community topics' },
+  { label: 'Bhakti', icon: 'musical-notes-outline', screen: 'Bhakti', color: '#7c3aed', bg: '#f5f3ff', desc: 'Vallalar devotional videos' },
   { label: 'Members', icon: 'people-outline', screen: 'Members', color: '#0ea5e9', bg: '#f0f9ff', desc: 'Browse all members' },
 ];
 

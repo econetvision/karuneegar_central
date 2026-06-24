@@ -395,5 +395,16 @@
   "services": {
     "title": "సమాజ సేవలు",
     "subtitle": "కరుణీగర్ సమాజం అందించే అన్ని సేవలు"
+  },
+  "bhakti": {
+    "title": "భక్తి",
+    "subtitle": "వల్లలార్ ఛానెల్ నుండి భక్తి వీడియోలు",
+    "source": "వల్లలార్ YouTube ఛానెల్",
+    "watchNow": "ఇప్పుడు చూడండి",
+    "watchOnYoutube": "YouTube లో చూడండి",
+    "noVideos": "వీడియోలు లేవు",
+    "noVideosDesc": "త్వరలో భక్తి కంటెంట్ వస్తుంది.",
+    "notConfigured": "భక్తి వీడియోలు కాన్ఫిగర్ చేయబడలేదు",
+    "notConfiguredDesc": "YOUTUBE_API_KEY సెట్ చేయండి."
   }
 }

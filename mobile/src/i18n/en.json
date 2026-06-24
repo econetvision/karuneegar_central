@@ -395,5 +395,16 @@
   "services": {
     "title": "Community Services",
     "subtitle": "Everything the Karuneegar community has to offer"
+  },
+  "bhakti": {
+    "title": "Bhakti",
+    "subtitle": "Devotional videos from the Vallalar channel",
+    "source": "Vallalar YouTube Channel",
+    "watchNow": "Watch Now",
+    "watchOnYoutube": "Watch on YouTube",
+    "noVideos": "No videos available",
+    "noVideosDesc": "Check back soon for devotional content.",
+    "notConfigured": "Bhakti videos not configured",
+    "notConfiguredDesc": "Please set the YOUTUBE_API_KEY to enable this feature."
   }
 }

@@ -48,6 +48,7 @@ export default function Navbar() {
     { to: '/scholarships', label: t('nav.scholarships') },
     { to: '/events', label: t('nav.events') },
     { to: '/pilgrimages', label: t('nav.pilgrimages') },
+    { to: '/bhakti', label: t('nav.bhakti') },
     { to: '/about', label: t('nav.about') },
   ];
 

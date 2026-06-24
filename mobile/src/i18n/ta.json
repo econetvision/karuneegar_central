@@ -395,5 +395,16 @@
   "services": {
     "title": "சமூக சேவைகள்",
     "subtitle": "கருணீகர் சமூகம் வழங்கும் அனைத்து சேவைகளும்"
+  },
+  "bhakti": {
+    "title": "பக்தி",
+    "subtitle": "வள்ளலார் சேனலிலிருந்து பக்தி வீடியோக்கள்",
+    "source": "வள்ளலார் YouTube சேனல்",
+    "watchNow": "இப்போது பாருங்கள்",
+    "watchOnYoutube": "YouTube-ல் பாருங்கள்",
+    "noVideos": "வீடியோக்கள் இல்லை",
+    "noVideosDesc": "விரைவில் பக்தி உள்ளடக்கம் வரும்.",
+    "notConfigured": "பக்தி வீடியோக்கள் இல்லை",
+    "notConfiguredDesc": "YOUTUBE_API_KEY அமைக்கவும்."
   }
 }

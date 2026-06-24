@@ -1640,6 +1640,63 @@ def mark_notifications_read():
     return jsonify({'ok': True})
 
 
+# ─── Bhakti ───────────────────────────────────────────────────────────────────
+
+_bhakti_cache: dict = {'data': None, 'ts': 0.0}
+_BHAKTI_TTL = 86400  # 24 hours
+_BHAKTI_PLAYLIST = 'UU__dvO3Cf7elH9T8ygzz7Tg'  # uploads playlist for channel UC__dvO3Cf7elH9T8ygzz7Tg
+
+@app.route('/api/bhakti', methods=['GET'])
+def get_bhakti():
+    import time
+    import urllib.request
+    import urllib.parse
+    import json as _json
+
+    api_key = os.environ.get('YOUTUBE_API_KEY', '')
+    now = time.time()
+    if _bhakti_cache['data'] and now - _bhakti_cache['ts'] < _BHAKTI_TTL:
+        return jsonify(_bhakti_cache['data'])
+    if not api_key:
+        return jsonify({'videos': [], 'configured': False})
+
+    params = urllib.parse.urlencode({
+        'playlistId': _BHAKTI_PLAYLIST,
+        'part': 'snippet',
+        'maxResults': '20',
+        'key': api_key,
+    })
+    url = f'https://www.googleapis.com/youtube/v3/playlistItems?{params}'
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            raw = _json.loads(resp.read().decode())
+    except Exception:
+        if _bhakti_cache['data']:
+            return jsonify(_bhakti_cache['data'])
+        return jsonify({'videos': [], 'configured': True, 'error': True})
+
+    videos = []
+    for item in raw.get('items', []):
+        s = item.get('snippet', {})
+        vid_id = s.get('resourceId', {}).get('videoId', '')
+        if not vid_id:
+            continue
+        thumbs = s.get('thumbnails', {})
+        thumb = (thumbs.get('high') or thumbs.get('medium') or thumbs.get('default') or {}).get('url', '')
+        videos.append({
+            'id': vid_id,
+            'title': s.get('title', ''),
+            'description': s.get('description', ''),
+            'thumbnail': thumb,
+            'published_at': s.get('publishedAt', ''),
+        })
+
+    result = {'videos': videos, 'configured': True}
+    _bhakti_cache['data'] = result
+    _bhakti_cache['ts'] = now
+    return jsonify(result)
+
+
 # ─── Stats ────────────────────────────────────────────────────────────────────
 
 @app.route('/api/health', methods=['GET'])
