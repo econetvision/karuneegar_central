@@ -120,6 +120,7 @@ def create_app():
             _migrate_matrimony_columns()
             _migrate_business_ad_columns()
             _migrate_event_columns()
+            _seed_admin()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -136,6 +137,14 @@ def _seed_forum_categories():
             ForumCategory(name='General Discussion', description='Community events, news, and general conversations.', icon='chat-dots'),
         ]
         db.session.add_all(categories)
+        db.session.commit()
+
+
+def _seed_admin():
+    """Ensure sathya20075@gmail.com is marked as admin."""
+    u = User.query.filter_by(email='sathya20075@gmail.com').first()
+    if u and not u.is_admin:
+        u.is_admin = True
         db.session.commit()
 
 
@@ -722,6 +731,85 @@ def get_members():
     pagination = query.paginate(page=page, per_page=20, error_out=False)
     members = [{**u.to_dict(), 'profile': u.profile.to_dict()} for u in pagination.items]
     return jsonify({'members': members, 'total': pagination.total, 'pages': pagination.pages, 'page': page})
+
+
+# ─── Admin: Member Management ─────────────────────────────────────────────────
+
+@app.route('/api/admin/members', methods=['GET'])
+@jwt_required()
+def admin_list_members():
+    user_id = int(get_jwt_identity())
+    admin = User.query.get(user_id)
+    if not (admin and admin.is_admin):
+        return jsonify({'error': 'Forbidden'}), 403
+    page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '')
+    query = User.query
+    if q:
+        query = query.filter(
+            User.username.ilike(f'%{q}%') |
+            User.email.ilike(f'%{q}%') |
+            User.member_id.ilike(f'%{q}%')
+        )
+    pg = query.order_by(User.created_at.desc()).paginate(page=page, per_page=30, error_out=False)
+    members = []
+    for u in pg.items:
+        d = u.to_dict(full=True)
+        if u.profile:
+            d['profile'] = u.profile.to_dict()
+        members.append(d)
+    return jsonify({'members': members, 'total': pg.total, 'pages': pg.pages, 'page': pg.page})
+
+
+@app.route('/api/admin/members', methods=['POST'])
+@jwt_required()
+def admin_create_member():
+    user_id = int(get_jwt_identity())
+    admin = User.query.get(user_id)
+    if not (admin and admin.is_admin):
+        return jsonify({'error': 'Forbidden'}), 403
+    data = request.get_json()
+    username = (data.get('username') or '').strip().lower()
+    email = (data.get('email') or '').strip().lower()
+    password = (data.get('password') or '').strip()
+    full_name = (data.get('full_name') or '').strip()
+    member_id_val = (data.get('member_id') or '').strip() or None
+    if not username or not email or not password:
+        return jsonify({'error': 'username, email and password are required'}), 400
+    if not _USERNAME_RE.match(username):
+        return jsonify({'error': 'Username must be 3-30 lowercase letters, digits, or underscores'}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already taken'}), 409
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'Email already registered'}), 409
+    if member_id_val and User.query.filter_by(member_id=member_id_val).first():
+        return jsonify({'error': 'Member ID already exists'}), 409
+    u = User(username=username, email=email, member_id=member_id_val)
+    u.set_password(password)
+    db.session.add(u)
+    db.session.flush()
+    if full_name:
+        db.session.add(Profile(user_id=u.id, full_name=full_name, is_public=True))
+    db.session.commit()
+    d = u.to_dict(full=True)
+    if u.profile:
+        d['profile'] = u.profile.to_dict()
+    return jsonify({'member': d}), 201
+
+
+@app.route('/api/admin/members/<int:uid>', methods=['DELETE'])
+@jwt_required()
+def admin_delete_member(uid):
+    user_id = int(get_jwt_identity())
+    admin = User.query.get(user_id)
+    if not (admin and admin.is_admin):
+        return jsonify({'error': 'Forbidden'}), 403
+    if uid == user_id:
+        return jsonify({'error': 'Cannot delete your own account'}), 400
+    target = User.query.get_or_404(uid)
+    db.session.delete(target)
+    db.session.commit()
+    return jsonify({'ok': True})
 
 
 # ─── Family Tree ──────────────────────────────────────────────────────────────
