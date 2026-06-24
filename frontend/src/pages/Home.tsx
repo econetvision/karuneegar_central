@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, GitBranch, MessageSquare, Heart, ArrowRight, Star, MapPin } from 'lucide-react';
+import { Users, GitBranch, MessageSquare, Heart, ArrowRight, Star, MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import api from '../api/client';
+import api, { uploadUrl } from '../api/client';
 
 interface Stats {
   members: number;
@@ -14,12 +14,37 @@ interface Stats {
 export default function Home() {
   const { t } = useTranslation();
   const [stats, setStats] = useState<Stats>({ members: 0, families: 0, forum_threads: 0, matrimony_profiles: 0 });
+  const [homeEvents, setHomeEvents] = useState<any[]>([]);
+  const [carouselIdx, setCarouselIdx] = useState(0);
 
   useEffect(() => {
     api.get('/stats').then((r) => setStats(r.data)).catch(() => {});
+    api.get('/events/home').then((r) => setHomeEvents(r.data.events || [])).catch(() => {});
   }, []);
 
+  // Auto-advance carousel
+  useEffect(() => {
+    if (homeEvents.length < 2) return;
+    const timer = setInterval(() => setCarouselIdx((i) => (i + 1) % homeEvents.length), 4000);
+    return () => clearInterval(timer);
+  }, [homeEvents.length]);
+
+  const prev = () => setCarouselIdx((i) => (i - 1 + homeEvents.length) % homeEvents.length);
+  const next = () => setCarouselIdx((i) => (i + 1) % homeEvents.length);
+
+  const fmtDate = (d?: string) => {
+    if (!d) return null;
+    try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return d; }
+  };
+
   const features = [
+    {
+      icon: <Calendar className="w-7 h-7 text-sky-600" />,
+      title: t('home.featureEvents'),
+      desc: t('home.featureEventsDesc'),
+      to: '/events',
+      color: 'from-sky-50 to-blue-50',
+    },
     {
       icon: <Users className="w-7 h-7 text-saffron-600" />,
       title: t('home.featureProfiles'),
@@ -94,6 +119,100 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Events Carousel */}
+      {homeEvents.length > 0 && (
+        <section className="bg-gray-950 py-10">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-display font-bold text-xl text-white flex items-center gap-2">
+                <Calendar size={20} className="text-saffron-400" /> Upcoming Events
+              </h2>
+              <Link to="/events" className="text-sm text-saffron-400 hover:text-saffron-300 font-medium flex items-center gap-1">
+                View all <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            <div className="relative overflow-hidden rounded-2xl">
+              {/* Slides */}
+              <div
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
+              >
+                {homeEvents.map((ev) => {
+                  const mediaUrl = ev.media_filename ? uploadUrl(ev.media_filename) : null;
+                  return (
+                    <Link
+                      key={ev.id}
+                      to={`/events/${ev.id}`}
+                      className="relative flex-shrink-0 w-full h-72 md:h-96 block group"
+                    >
+                      {mediaUrl ? (
+                        <img src={mediaUrl} alt={ev.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-sky-800 to-blue-900 flex items-center justify-center">
+                          <span className="text-8xl">🎉</span>
+                        </div>
+                      )}
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                        <h3 className="font-display font-bold text-xl md:text-2xl text-white mb-2 group-hover:text-yellow-300 transition-colors">
+                          {ev.title}
+                        </h3>
+                        <div className="flex flex-wrap gap-3">
+                          {ev.event_date && (
+                            <span className="inline-flex items-center gap-1.5 text-sm text-white/85">
+                              <Calendar size={13} className="text-saffron-400" /> {fmtDate(ev.event_date)}
+                            </span>
+                          )}
+                          {ev.donate_url && (
+                            <span className="inline-flex items-center gap-1 text-xs bg-rose-500/80 text-white px-2.5 py-0.5 rounded-full font-medium">
+                              ❤️ Donate
+                            </span>
+                          )}
+                          {ev.register_url && (
+                            <span className="inline-flex items-center gap-1 text-xs bg-violet-500/80 text-white px-2.5 py-0.5 rounded-full font-medium">
+                              ✅ Register
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Prev/Next buttons */}
+              {homeEvents.length > 1 && (
+                <>
+                  <button onClick={prev}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors">
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button onClick={next}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors">
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Dots */}
+            {homeEvents.length > 1 && (
+              <div className="flex justify-center gap-2 mt-4">
+                {homeEvents.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCarouselIdx(i)}
+                    className={`h-1.5 rounded-full transition-all ${i === carouselIdx ? 'w-6 bg-saffron-400' : 'w-1.5 bg-white/30'}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Stats */}
       <section className="bg-white border-b border-orange-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -122,7 +241,7 @@ export default function Home() {
             {t('home.featuresSubtitle')}
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f) => (
             <Link
               key={f.to}

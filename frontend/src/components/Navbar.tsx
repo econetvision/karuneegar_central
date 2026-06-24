@@ -33,6 +33,7 @@ export default function Navbar() {
     { to: '/businesses', label: t('nav.businesses') },
     { to: '/matrimony', label: t('nav.matrimony') },
     { to: '/scholarships', label: t('nav.scholarships') },
+    { to: '/events', label: t('nav.events') },
     { to: '/pilgrimages', label: t('nav.pilgrimages') },
     { to: '/about', label: t('nav.about') },
   ];
