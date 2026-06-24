@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 
 export default function LoginScreen({ navigation }: any) {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!identifier || !password) { Alert.alert('Error', 'Please fill in all fields.'); return; }
+    if (!identifier || !password) { Alert.alert(t('common.error'), t('auth.fillAll')); return; }
     setLoading(true);
     try {
       await login(identifier, password);
     } catch (err: any) {
-      Alert.alert('Login Failed', err.response?.data?.error || 'Invalid credentials. Please try again.');
+      Alert.alert(t('auth.loginFailed'), err.response?.data?.error || t('auth.invalidCredentials'));
     } finally {
       setLoading(false);
     }
@@ -23,48 +25,46 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      {/* Logo */}
       <View style={styles.logoBox}>
         <View style={styles.logoIcon}><Text style={styles.logoLetter}>K</Text></View>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to Karuneegar Central</Text>
+        <Text style={styles.title}>{t('auth.welcomeBack')}</Text>
+        <Text style={styles.subtitle}>{t('auth.signInSubtitle')}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Email or Username</Text>
+        <Text style={styles.label}>{t('auth.emailOrUsername')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter email or username"
+          placeholder={t('auth.emailPlaceholder')}
           autoCapitalize="none"
           keyboardType="email-address"
           value={identifier}
           onChangeText={setIdentifier}
         />
         <View style={styles.passwordHeader}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('auth.password')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={styles.forgotLink}>Forgot password?</Text>
+            <Text style={styles.forgotLink}>{t('auth.forgotPassword')}</Text>
           </TouchableOpacity>
         </View>
         <TextInput
           style={styles.input}
-          placeholder="Enter password"
+          placeholder={t('auth.passwordPlaceholder')}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
         <TouchableOpacity style={styles.primaryBtn} onPress={handleLogin} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Sign In</Text>}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{t('auth.signIn')}</Text>}
         </TouchableOpacity>
       </View>
 
-      {/* Join Now CTA */}
       <View style={styles.joinCard}>
-        <Text style={styles.joinTitle}>New to Karuneegar Central?</Text>
+        <Text style={styles.joinTitle}>{t('auth.newHere')}</Text>
         <TouchableOpacity style={styles.joinBtn} onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.joinBtnText}>Join Now →</Text>
+          <Text style={styles.joinBtnText}>{t('auth.joinNow')}</Text>
         </TouchableOpacity>
-        <Text style={styles.joinHint}>Free · Takes less than 2 minutes</Text>
+        <Text style={styles.joinHint}>{t('auth.joinHint')}</Text>
       </View>
     </ScrollView>
   );

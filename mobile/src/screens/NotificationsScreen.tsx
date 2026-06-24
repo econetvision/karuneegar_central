@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 import { colors, spacing, radius } from '../theme';
 
@@ -17,6 +18,7 @@ interface NotificationItem {
 }
 
 export default function NotificationsScreen({ navigation }: any) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
@@ -42,14 +44,14 @@ export default function NotificationsScreen({ navigation }: any) {
       if (subscribed) {
         await api.delete('/events/subscribe');
         setSubscribed(false);
-        Alert.alert('Unsubscribed', 'You will no longer receive event notifications.');
+        Alert.alert(t('notifications.unsubscribe'), t('notifications.notSubscribed'));
       } else {
         await api.post('/events/subscribe');
         setSubscribed(true);
-        Alert.alert('Subscribed!', 'You\'ll be notified when new events are posted.');
+        Alert.alert(t('notifications.subscribe'), t('notifications.subscribed'));
       }
     } catch {
-      Alert.alert('Error', 'Could not update subscription.');
+      Alert.alert(t('common.error'), t('common.error'));
     } finally {
       setSubLoading(false);
     }
@@ -99,12 +101,10 @@ export default function NotificationsScreen({ navigation }: any) {
         />
         <View style={{ flex: 1 }}>
           <Text style={[styles.subTitle, subscribed && { color: colors.primary }]}>
-            {subscribed ? 'Subscribed to new events' : 'Subscribe to event notifications'}
+            {subscribed ? t('notifications.subscribed') : t('notifications.subscribe')}
           </Text>
           <Text style={styles.subHint}>
-            {subscribed
-              ? 'Tap to unsubscribe'
-              : 'Get notified whenever a new event is posted'}
+            {subscribed ? t('notifications.unsubscribe') : t('notifications.notSubscribed')}
           </Text>
         </View>
         {subLoading
@@ -117,11 +117,9 @@ export default function NotificationsScreen({ navigation }: any) {
       ) : items.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="notifications-off-outline" size={52} color={colors.border} />
-          <Text style={styles.emptyTitle}>No notifications yet</Text>
+          <Text style={styles.emptyTitle}>{t('notifications.noNotifications')}</Text>
           <Text style={styles.emptyDesc}>
-            {subscribed
-              ? "You'll be notified when new events are posted."
-              : 'Subscribe above to start receiving event notifications.'}
+            {subscribed ? t('notifications.noNotificationsDesc') : t('notifications.notSubscribed')}
           </Text>
         </View>
       ) : (

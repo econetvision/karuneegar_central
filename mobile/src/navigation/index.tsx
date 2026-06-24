@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme';
@@ -112,6 +113,7 @@ function ProfileStack() {
 }
 
 function MainTabs() {
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -133,11 +135,11 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Members" component={MembersStack} />
-      <Tab.Screen name="Forums" component={ForumsStack} />
-      <Tab.Screen name="Services" component={ServicesStack} />
-      <Tab.Screen name="Profile" component={ProfileStack} />
+      <Tab.Screen name="Home" component={HomeStack} options={{ tabBarLabel: t('nav.home') }} />
+      <Tab.Screen name="Members" component={MembersStack} options={{ tabBarLabel: t('nav.members') }} />
+      <Tab.Screen name="Forums" component={ForumsStack} options={{ tabBarLabel: t('nav.forums') }} />
+      <Tab.Screen name="Services" component={ServicesStack} options={{ tabBarLabel: t('nav.services') }} />
+      <Tab.Screen name="Profile" component={ProfileStack} options={{ tabBarLabel: t('nav.profile') }} />
     </Tab.Navigator>
   );
 }

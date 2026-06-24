@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
+import i18n, { LANGUAGES, saveLanguage } from '../i18n';
 
 export default function ProfileScreen({ navigation, route }: any) {
+  const { t } = useTranslation();
   const { user: authUser, logout } = useAuth();
   const username = route?.params?.username;
   const isOwn = !username || username === authUser?.username;
@@ -13,6 +16,8 @@ export default function ProfileScreen({ navigation, route }: any) {
   const [profile, setProfile] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [langModal, setLangModal] = useState(false);
+  const [currentLang, setCurrentLang] = useState(i18n.language);
 
   useEffect(() => {
     const req = isOwn ? api.get('/profile') : api.get(`/users/${username}`);
@@ -20,10 +25,17 @@ export default function ProfileScreen({ navigation, route }: any) {
   }, [username, isOwn]);
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: logout },
+    Alert.alert(t('profile.signOut'), t('profile.signOutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('profile.signOut'), style: 'destructive', onPress: logout },
     ]);
+  };
+
+  const handleLanguageChange = async (code: string) => {
+    await i18n.changeLanguage(code);
+    await saveLanguage(code);
+    setCurrentLang(code);
+    setLangModal(false);
   };
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} color={colors.primary} />;
@@ -32,18 +44,18 @@ export default function ProfileScreen({ navigation, route }: any) {
     return (
       <View style={styles.privateBox}>
         <Ionicons name="lock-closed" size={48} color={colors.textLight} />
-        <Text style={styles.privateTitle}>Private Profile</Text>
-        <Text style={styles.privateMsg}>This member has a private profile.</Text>
+        <Text style={styles.privateTitle}>{t('profile.privateProfile')}</Text>
+        <Text style={styles.privateMsg}>{t('profile.privateProfileMsg')}</Text>
       </View>
     );
   }
 
   const displayName = profile?.full_name || userData?.username || 'Member';
   const photoUrl = profile?.photo_filename ? uploadUrl(profile.photo_filename) : null;
+  const activeLang = LANGUAGES.find(l => l.code === currentLang);
 
   return (
     <ScrollView style={styles.scroll}>
-      {/* Cover */}
       <View style={styles.cover} />
       <View style={styles.avatarWrap}>
         {photoUrl
@@ -54,7 +66,7 @@ export default function ProfileScreen({ navigation, route }: any) {
       {isOwn && (
         <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('EditProfile')}>
           <Ionicons name="pencil-outline" size={14} color={colors.primary} />
-          <Text style={styles.editBtnText}>Edit</Text>
+          <Text style={styles.editBtnText}>{t('profile.edit')}</Text>
         </TouchableOpacity>
       )}
 
@@ -68,7 +80,6 @@ export default function ProfileScreen({ navigation, route }: any) {
 
       {profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
 
-      {/* Info chips */}
       <View style={styles.chips}>
         {profile?.location && <Chip icon="location-outline" text={profile.location} />}
         {profile?.occupation && <Chip icon="briefcase-outline" text={profile.occupation} />}
@@ -76,19 +87,17 @@ export default function ProfileScreen({ navigation, route }: any) {
         {profile?.native_place && <Chip icon="home-outline" text={profile.native_place} />}
       </View>
 
-      {/* Community details */}
       {(profile?.native_place || profile?.gothram) && (
-        <Section title="Community Details">
-          {profile.native_place && <InfoRow label="Native Place" value={profile.native_place} />}
-          {profile.gothram && <InfoRow label="Gothram" value={profile.gothram} />}
+        <Section title={t('profile.communityDetails')}>
+          {profile.native_place && <InfoRow label={t('profile.nativePlaceLabel')} value={profile.native_place} />}
+          {profile.gothram && <InfoRow label={t('profile.gothramLabel')} value={profile.gothram} />}
         </Section>
       )}
 
-      {/* Links */}
       {(profile?.linkedin || profile?.website) && (
-        <Section title="Links">
-          {profile.linkedin && <InfoRow label="LinkedIn" value={profile.linkedin} />}
-          {profile.website && <InfoRow label="Website" value={profile.website} />}
+        <Section title={t('profile.linksTitle')}>
+          {profile.linkedin && <InfoRow label={t('profile.linkedIn')} value={profile.linkedin} />}
+          {profile.website && <InfoRow label={t('profile.website')} value={profile.website} />}
         </Section>
       )}
 
@@ -96,16 +105,49 @@ export default function ProfileScreen({ navigation, route }: any) {
         <View style={styles.actionsSection}>
           <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('FamilyTree')}>
             <Ionicons name="git-branch-outline" size={18} color={colors.primary} />
-            <Text style={styles.actionBtnText}>My Family Tree</Text>
+            <Text style={styles.actionBtnText}>{t('profile.myFamilyTree')}</Text>
           </TouchableOpacity>
+
+          {/* Language switcher */}
+          <TouchableOpacity style={styles.actionBtn} onPress={() => setLangModal(true)}>
+            <Ionicons name="language-outline" size={18} color={colors.primary} />
+            <Text style={styles.actionBtnText}>{t('settings.language')}</Text>
+            <View style={{ flex: 1 }} />
+            <Text style={styles.langValue}>{activeLang?.nativeLabel || currentLang.toUpperCase()}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textLight} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={[styles.actionBtn, styles.logoutBtn]} onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={18} color={colors.error} />
-            <Text style={[styles.actionBtnText, { color: colors.error }]}>Sign Out</Text>
+            <Text style={[styles.actionBtnText, { color: colors.error }]}>{t('profile.signOut')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
       <View style={{ height: 40 }} />
+
+      {/* Language picker modal */}
+      <Modal visible={langModal} transparent animationType="slide" onRequestClose={() => setLangModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLangModal(false)}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>{t('settings.selectLanguage')}</Text>
+            {LANGUAGES.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={[styles.langOption, lang.code === currentLang && styles.langOptionActive]}
+                onPress={() => handleLanguageChange(lang.code)}
+              >
+                <Text style={[styles.langOptionText, lang.code === currentLang && styles.langOptionTextActive]}>
+                  {lang.nativeLabel}
+                </Text>
+                {lang.code === currentLang && (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -164,7 +206,15 @@ const styles = StyleSheet.create({
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.md },
   actionBtnText: { fontSize: 15, fontWeight: '600', color: colors.text },
   logoutBtn: { borderWidth: 1, borderColor: colors.errorBorder },
+  langValue: { fontSize: 14, color: colors.textMuted, marginRight: 4 },
   privateBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   privateTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginTop: 12 },
   privateMsg: { fontSize: 14, color: colors.textMuted, marginTop: 6, textAlign: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: spacing.lg, paddingBottom: 40 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: spacing.md, textAlign: 'center' },
+  langOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: spacing.md, borderRadius: radius.md, marginBottom: 4 },
+  langOptionActive: { backgroundColor: colors.primaryLight },
+  langOptionText: { fontSize: 16, color: colors.text, fontWeight: '500' },
+  langOptionTextActive: { color: colors.primary, fontWeight: '700' },
 });
