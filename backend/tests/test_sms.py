@@ -10,10 +10,10 @@ import sms as sms_module
 
 
 class TestGenerateOtp:
-    def test_returns_5_digit_string(self):
+    def test_returns_6_digit_string(self):
         otp = sms_module.generate_otp()
         assert isinstance(otp, str)
-        assert len(otp) == 5
+        assert len(otp) == 6
         assert otp.isdigit()
 
     def test_generates_different_otps(self):

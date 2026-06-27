@@ -12,7 +12,7 @@ OTP_MESSAGE = 'Your Karuneegar Central verification code is {otp}. Valid for 10 
 
 
 def generate_otp() -> str:
-    return str(secrets.randbelow(90000) + 10000)
+    return str(secrets.randbelow(900000) + 100000)
 
 
 def send_otp_autogen(mobile: str) -> str | None:

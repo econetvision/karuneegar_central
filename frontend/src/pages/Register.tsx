@@ -88,7 +88,7 @@ export default function Register() {
       return;
     }
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
-    if (!otpSent || otpCode.length !== 5) { setError('Please verify your mobile number first.'); return; }
+    if (!otpSent || otpCode.length !== 6) { setError('Please verify your mobile number first.'); return; }
     setLoading(true);
     try {
       await register(form.username, form.email, form.password, form.full_name, form.mobile, otpCode, mobilePublic);
@@ -210,7 +210,7 @@ export default function Register() {
               {otpSent && (
                 <div className="mt-3">
                   <label className="label flex items-center gap-1.5">
-                    {otpCode.length === 5
+                    {otpCode.length === 6
                       ? <CheckCircle2 size={13} className="text-green-500" />
                       : <span className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 inline-block" />}
                     {t('auth.otpPrompt', { destination: otpVia === 'email' ? `email (${form.email})` : `mobile (${form.mobile})` })}
@@ -218,12 +218,12 @@ export default function Register() {
                   <input
                     type="text"
                     inputMode="numeric"
-                    maxLength={5}
-                    pattern="\d{5}"
+                    maxLength={6}
+                    pattern="\d{6}"
                     className="input tracking-[0.5em] font-mono text-center text-xl"
-                    placeholder="·····"
+                    placeholder="······"
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     required
                     autoFocus
                   />
@@ -256,7 +256,7 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={loading || !otpSent || otpCode.length !== 5}
+              disabled={loading || !otpSent || otpCode.length !== 6}
               className="btn-primary w-full justify-center flex"
             >
               {loading ? t('auth.creatingAccount') : t('auth.createAccountBtn')}
