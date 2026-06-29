@@ -103,7 +103,7 @@
     "emailOtp": "Email OTP",
     "resend": "Resend",
     "otpEmailHint": "OTP will be sent to your email address above.",
-    "otpPrompt": "Enter the 5-digit code sent to your {{destination}}",
+    "otpPrompt": "Enter the 6-digit code sent to your {{destination}}",
     "mobilePublicConsent": "Allow other community members to see my mobile number",
     "mobilePublicHint": "If unchecked, your number will be hidden from other members. You can change this anytime in your profile settings.",
     "creatingAccount": "Creating account…",

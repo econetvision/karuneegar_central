@@ -12,7 +12,7 @@ def _normalize_mobile(raw: str) -> str:
     return re.sub(r'[\s\-\.]', '', raw.strip())
 
 def _now():
-    return datetime.now(timezone.utc)
+    return datetime.utcnow()
 from flask import Flask, request, jsonify, send_from_directory, current_app
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
