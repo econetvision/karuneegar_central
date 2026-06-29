@@ -21,7 +21,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 from models import db, User, Profile, FamilyMember, ForumCategory, ForumThread, ForumReply, MatrimonyProfile, OtpRequest, BusinessProfile, BusinessAd, Scholarship, Pilgrimage, Event, EventSubscription, Notification
-from sms import generate_otp, send_otp_sms, send_otp_autogen
+from sms import generate_otp, send_otp_sms
 from email_otp import send_otp_email
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
@@ -340,9 +340,9 @@ def send_otp_route():
         return jsonify({'error': 'Too many requests. Please wait 10 minutes.'}), 429
 
     if is_indian:
-        # Use 2Factor AUTOGEN — 2Factor generates & sends OTP, returns the code
-        otp = send_otp_autogen(mobile)
-        if not otp:
+        otp = generate_otp()
+        ok = send_otp_sms(mobile, otp)
+        if not ok:
             return jsonify({'error': 'Failed to send OTP to mobile number. Please try again.'}), 500
         channel = 'mobile number'
     else:
@@ -423,8 +423,9 @@ def forgot_password():
         return jsonify({'error': 'Too many requests. Please wait 10 minutes.'}), 429
 
     if is_indian:
-        otp = send_otp_autogen(mobile)
-        if not otp:
+        otp = generate_otp()
+        ok = send_otp_sms(mobile, otp)
+        if not ok:
             return jsonify({'error': 'Failed to send OTP. Please try again.'}), 500
         channel = 'mobile number'
     else:
@@ -649,8 +650,9 @@ def request_mobile_change():
         return jsonify({'error': 'Too many requests. Please wait 10 minutes.'}), 429
 
     if is_indian:
-        otp = send_otp_autogen(new_mobile)
-        if not otp:
+        otp = generate_otp()
+        ok = send_otp_sms(new_mobile, otp)
+        if not ok:
             return jsonify({'error': 'Failed to send OTP. Please try again.'}), 500
         channel = 'new mobile number'
     else:
