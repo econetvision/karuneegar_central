@@ -121,6 +121,7 @@ def create_app():
             _migrate_business_ad_columns()
             _migrate_event_columns()
             _seed_admin()
+            _seed_generic_admin()
         except Exception as e:
             app.logger.warning("DB init skipped: %s", e)
 
@@ -146,6 +147,31 @@ def _seed_admin():
     if u and not u.is_admin:
         u.is_admin = True
         db.session.commit()
+
+
+def _seed_generic_admin():
+    """Create a generic admin_user account from env vars if it doesn't exist."""
+    username = os.environ.get('ADMIN_USERNAME', 'admin_user')
+    email    = os.environ.get('ADMIN_EMAIL', 'admin@karuneegar-central.org')
+    password = os.environ.get('ADMIN_PASSWORD')
+    if not password:
+        return
+    u = User.query.filter_by(username=username).first()
+    if not u:
+        u = User(username=username, email=email, is_admin=True)
+        u.set_password(password)
+        db.session.add(u)
+        db.session.commit()
+    else:
+        changed = False
+        if not u.is_admin:
+            u.is_admin = True
+            changed = True
+        if password:
+            u.set_password(password)
+            changed = True
+        if changed:
+            db.session.commit()
 
 
 def _migrate_member_id():
