@@ -16,6 +16,7 @@
         "backgroundColor": "#f97316"
       },
       "package": "org.karuneegarcental.app",
+      "versionCode": 2,
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]

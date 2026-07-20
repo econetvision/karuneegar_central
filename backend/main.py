@@ -1725,6 +1725,83 @@ def get_stats():
         return jsonify({'members': 0, 'families': 0, 'forum_threads': 0, 'matrimony_profiles': 0})
 
 
+@app.route('/privacy-policy')
+def privacy_policy():
+    from flask import make_response
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Karuneegar Central</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px 20px 60px; color: #111827; background: #fafaf9; line-height: 1.7; }
+  h1 { color: #f97316; font-size: 2rem; margin-bottom: 4px; }
+  h2 { color: #111827; font-size: 1.2rem; margin-top: 2rem; }
+  p, li { color: #374151; font-size: 0.97rem; }
+  ul { padding-left: 20px; }
+  a { color: #f97316; }
+  .updated { color: #6b7280; font-size: 0.9rem; margin-bottom: 2rem; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
+</style>
+</head>
+<body>
+<h1>Privacy Policy</h1>
+<p class="updated">Last updated: July 2026</p>
+<p>Karuneegar Central ("we", "our", or "us") operates the Karuneegar Central mobile application. This Privacy Policy explains how we collect, use, and protect your information when you use our app.</p>
+
+<h2>1. Information We Collect</h2>
+<ul>
+  <li><strong>Account Information:</strong> Name, email address, phone number, and password when you register.</li>
+  <li><strong>Profile Information:</strong> Location, occupation, gothram, native place, and profile photo that you voluntarily provide.</li>
+  <li><strong>Matrimony Information:</strong> Star (nakshatra), raasi, gothram, and horoscope details if you create a matrimony profile.</li>
+  <li><strong>Business Information:</strong> Business name, description, photos, and contact details if you list a business.</li>
+  <li><strong>User Content:</strong> Posts, replies, and images you share in forums and events.</li>
+  <li><strong>Usage Data:</strong> App activity logs for improving the service and ensuring security.</li>
+</ul>
+
+<h2>2. How We Use Your Information</h2>
+<ul>
+  <li>To create and manage your account and community profile.</li>
+  <li>To display your profile to other verified community members.</li>
+  <li>To enable matrimony matching within the community.</li>
+  <li>To facilitate communication via forums, events, and notifications.</li>
+  <li>To send OTP messages for login verification.</li>
+  <li>To improve app features and ensure security.</li>
+</ul>
+
+<h2>3. Information Sharing</h2>
+<p>We do not sell, rent, or trade your personal information to third parties. Your profile information is visible only to verified members of the Karuneegar community who are registered in the app. We do not share data with advertisers.</p>
+
+<h2>4. Data Storage and Security</h2>
+<p>Your data is stored securely on our servers. We use industry-standard encryption and authentication (JWT) to protect your account. Profile photos and uploads are stored securely and served only within the app.</p>
+
+<h2>5. Your Rights</h2>
+<ul>
+  <li>You can update or delete your profile information at any time from the app.</li>
+  <li>You can delete your matrimony or business listing at any time.</li>
+  <li>To request full account deletion, contact us at the email below.</li>
+</ul>
+
+<h2>6. Children's Privacy</h2>
+<p>Our app is not intended for children under 13. We do not knowingly collect information from children.</p>
+
+<h2>7. Changes to This Policy</h2>
+<p>We may update this Privacy Policy from time to time. We will notify users of significant changes through the app. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+
+<h2>8. Contact Us</h2>
+<p>If you have any questions about this Privacy Policy or wish to request data deletion, please contact us at:<br>
+<a href="mailto:sathya20075@gmail.com">sathya20075@gmail.com</a></p>
+
+<hr>
+<p style="color:#6b7280;font-size:0.85rem;">© 2026 Karuneegar Central. All rights reserved.</p>
+</body>
+</html>"""
+    response = make_response(html, 200)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return response
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=os.environ.get('FLASK_ENV') != 'production', host='0.0.0.0', port=port)
