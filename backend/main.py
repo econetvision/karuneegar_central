@@ -1791,7 +1791,7 @@ def privacy_policy():
 
 <h2>8. Contact Us</h2>
 <p>If you have any questions about this Privacy Policy or wish to request data deletion, please contact us at:<br>
-<a href="mailto:sathya20075@gmail.com">sathya20075@gmail.com</a></p>
+<a href="mailto:econetvision@gmail.com">econetvision@gmail.com</a></p>
 
 <hr>
 <p style="color:#6b7280;font-size:0.85rem;">© 2026 Karuneegar Central. All rights reserved.</p>
