@@ -1751,6 +1751,139 @@ def get_stats():
         return jsonify({'members': 0, 'families': 0, 'forum_threads': 0, 'matrimony_profiles': 0})
 
 
+def _send_deletion_request_email(user_email: str, username: str, reason: str) -> bool:
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    host      = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+    port      = int(os.environ.get('SMTP_PORT', '587'))
+    smtp_user = os.environ.get('SMTP_USER')
+    smtp_pass = os.environ.get('SMTP_PASS')
+    from_addr = os.environ.get('SMTP_FROM', smtp_user)
+    admin_email = os.environ.get('ADMIN_NOTIFY_EMAIL', 'econetvision@gmail.com')
+
+    if not smtp_user or not smtp_pass:
+        app.logger.warning('Deletion request received but SMTP not configured. user=%s', user_email)
+        return False
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = f'[Karuneegar Central] Account Deletion Request — {username or user_email}'
+    msg['From']    = f'Karuneegar Central <{from_addr}>'
+    msg['To']      = admin_email
+
+    text = (
+        f'Account Deletion Request\n\n'
+        f'Email   : {user_email}\n'
+        f'Username: {username or "not provided"}\n'
+        f'Reason  : {reason or "not provided"}\n\n'
+        f'Please delete this account and all associated data within 30 days.\n'
+    )
+    html = f"""
+    <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px">
+      <h2 style="color:#dc2626;margin-bottom:4px">Account Deletion Request</h2>
+      <p style="color:#6b7280;margin-top:0;font-size:13px">Karuneegar Central</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:16px">
+        <tr><td style="padding:10px 0;color:#6b7280;width:110px">Email</td><td style="padding:10px 0;color:#111827;font-weight:600">{user_email}</td></tr>
+        <tr style="border-top:1px solid #f3f4f6"><td style="padding:10px 0;color:#6b7280">Username</td><td style="padding:10px 0;color:#111827;font-weight:600">{username or 'not provided'}</td></tr>
+        <tr style="border-top:1px solid #f3f4f6"><td style="padding:10px 0;color:#6b7280">Reason</td><td style="padding:10px 0;color:#111827">{reason or 'not provided'}</td></tr>
+      </table>
+      <p style="color:#374151;margin-top:20px;font-size:14px">Please delete this account and all associated data within <strong>30 days</strong>.</p>
+    </div>
+    """
+    msg.attach(MIMEText(text, 'plain'))
+    msg.attach(MIMEText(html, 'html'))
+
+    try:
+        with smtplib.SMTP(host, port, timeout=15) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(from_addr, admin_email, msg.as_string())
+        return True
+    except Exception as exc:
+        app.logger.error('Deletion request email failed: %s', exc)
+        return False
+
+
+_DELETE_PAGE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Request Account Deletion — Karuneegar Central</title>
+<style>
+  *{{box-sizing:border-box;margin:0;padding:0}}
+  body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fafaf9;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}}
+  .card{{background:#fff;border-radius:16px;padding:40px 36px;max-width:480px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.08)}}
+  .logo{{color:#f97316;font-size:22px;font-weight:800;margin-bottom:6px}}
+  h1{{font-size:22px;font-weight:700;color:#111827;margin-bottom:8px}}
+  p.sub{{color:#6b7280;font-size:14px;line-height:1.6;margin-bottom:28px}}
+  label{{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}}
+  input,textarea{{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:15px;color:#111827;background:#fafaf9;outline:none;transition:border 0.2s}}
+  input:focus,textarea:focus{{border-color:#f97316}}
+  textarea{{resize:vertical;min-height:90px}}
+  .field{{margin-bottom:18px}}
+  button{{width:100%;background:#dc2626;color:#fff;font-size:15px;font-weight:700;padding:14px;border:none;border-radius:10px;cursor:pointer;margin-top:8px}}
+  button:hover{{background:#b91c1c}}
+  .alert{{padding:14px 16px;border-radius:10px;font-size:14px;margin-bottom:20px}}
+  .alert.success{{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}}
+  .alert.error{{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}}
+  .note{{font-size:12px;color:#9ca3af;margin-top:24px;line-height:1.6;text-align:center}}
+  a{{color:#f97316}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Karuneegar Central</div>
+  <h1>Request Account Deletion</h1>
+  <p class="sub">Submit this form to request deletion of your account and all associated data. We will process your request within 30 days.</p>
+  {alert}
+  <form method="POST">
+    <div class="field">
+      <label>Email Address *</label>
+      <input type="email" name="email" placeholder="your@email.com" required>
+    </div>
+    <div class="field">
+      <label>Username (optional)</label>
+      <input type="text" name="username" placeholder="your_username">
+    </div>
+    <div class="field">
+      <label>Reason (optional)</label>
+      <textarea name="reason" placeholder="Tell us why you want to delete your account..."></textarea>
+    </div>
+    <button type="submit">Submit Deletion Request</button>
+  </form>
+  <p class="note">
+    This will permanently delete your profile, family tree entries, forum posts, matrimony listing, and business listing.<br><br>
+    Questions? <a href="mailto:econetvision@gmail.com">econetvision@gmail.com</a>
+  </p>
+</div>
+</body>
+</html>"""
+
+
+@app.route('/delete-account', methods=['GET', 'POST'])
+def delete_account_request():
+    from flask import make_response
+    if request.method == 'POST':
+        user_email = (request.form.get('email') or '').strip().lower()
+        username   = (request.form.get('username') or '').strip()
+        reason     = (request.form.get('reason') or '').strip()
+
+        if not user_email:
+            html = _DELETE_PAGE.format(alert='<div class="alert error">Email address is required.</div>')
+            return make_response(html, 400, {'Content-Type': 'text/html; charset=utf-8'})
+
+        _send_deletion_request_email(user_email, username, reason)
+        alert = '<div class="alert success">✓ Your deletion request has been submitted. We will process it within 30 days.</div>'
+        html = _DELETE_PAGE.format(alert=alert)
+        return make_response(html, 200, {'Content-Type': 'text/html; charset=utf-8'})
+
+    html = _DELETE_PAGE.format(alert='')
+    return make_response(html, 200, {'Content-Type': 'text/html; charset=utf-8'})
+
+
 @app.route('/privacy-policy')
 def privacy_policy():
     from flask import make_response
@@ -1806,7 +1939,7 @@ def privacy_policy():
 <ul>
   <li>You can update or delete your profile information at any time from the app.</li>
   <li>You can delete your matrimony or business listing at any time.</li>
-  <li>To request full account deletion, contact us at the email below.</li>
+  <li>To request full account and data deletion, use our <a href="/delete-account">Account Deletion Request</a> page.</li>
 </ul>
 
 <h2>6. Children's Privacy</h2>
