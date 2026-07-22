@@ -1863,6 +1863,85 @@ _DELETE_PAGE = """<!DOCTYPE html>
 </html>"""
 
 
+@app.route('/csae-policy')
+def csae_policy():
+    from flask import make_response
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Safety Policy — Karuneegar Central</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:800px;margin:0 auto;padding:24px 20px 60px;color:#111827;background:#fafaf9;line-height:1.7}
+  h1{color:#f97316;font-size:2rem;margin-bottom:4px}
+  h2{color:#111827;font-size:1.2rem;margin-top:2rem}
+  p,li{color:#374151;font-size:0.97rem}
+  ul{padding-left:20px}
+  a{color:#f97316}
+  .updated{color:#6b7280;font-size:0.9rem;margin-bottom:2rem}
+  .badge{display:inline-block;background:#fef2f2;color:#dc2626;font-weight:700;font-size:0.85rem;padding:6px 14px;border-radius:20px;border:1px solid #fecaca;margin-bottom:1.5rem}
+  hr{border:none;border-top:1px solid #e5e7eb;margin:2rem 0}
+</style>
+</head>
+<body>
+<h1>Child Safety Policy</h1>
+<div class="badge">Zero Tolerance for CSAE</div>
+<p class="updated">Last updated: July 2026</p>
+
+<p>Karuneegar Central is a community platform for the Karuneegar community. We are fully committed to the safety and protection of children. This policy outlines our standards against Child Sexual Abuse and Exploitation (CSAE).</p>
+
+<h2>1. Zero-Tolerance Policy</h2>
+<p>Karuneegar Central has a strict zero-tolerance policy toward any content or behaviour that sexually exploits or abuses minors. This includes, but is not limited to:</p>
+<ul>
+  <li>Child Sexual Abuse Material (CSAM) of any kind</li>
+  <li>Grooming, solicitation, or exploitation of minors</li>
+  <li>Sharing, distributing, or requesting sexual content involving minors</li>
+  <li>Any content that sexualises individuals under the age of 18</li>
+</ul>
+
+<h2>2. User Eligibility</h2>
+<p>Karuneegar Central is intended for users who are 13 years of age or older. Users under 18 may only use the platform with the involvement and consent of a parent or legal guardian. The app is not directed at children under 13, and we do not knowingly collect personal data from children under 13.</p>
+
+<h2>3. Prohibited Content and Conduct</h2>
+<p>The following are strictly prohibited on Karuneegar Central:</p>
+<ul>
+  <li>Posting, uploading, or sharing any sexually explicit content involving minors</li>
+  <li>Using the platform to contact, solicit, or communicate with minors for sexual purposes</li>
+  <li>Creating profiles or listings that misrepresent age for the purpose of engaging with minors</li>
+  <li>Any content that endangers, exploits, or harms children in any way</li>
+</ul>
+
+<h2>4. Content Moderation</h2>
+<p>Our administrators actively monitor user-generated content including profile photos, forum posts, business listings, and matrimony profiles. Any content that violates this policy is removed immediately and the responsible account is permanently banned.</p>
+
+<h2>5. Reporting</h2>
+<p>If you encounter any content or behaviour on Karuneegar Central that you believe constitutes child sexual abuse or exploitation, please report it immediately:</p>
+<ul>
+  <li><strong>Email us:</strong> <a href="mailto:econetvision@gmail.com">econetvision@gmail.com</a></li>
+  <li><strong>Subject line:</strong> CSAE Report</li>
+</ul>
+<p>All reports are treated with strict confidentiality and acted upon without delay.</p>
+
+<h2>6. Cooperation with Authorities</h2>
+<p>Karuneegar Central will fully cooperate with law enforcement agencies and relevant authorities in any investigation related to child sexual abuse or exploitation. We will preserve and provide evidence as required by applicable law. We also report confirmed CSAM to the National Center for Missing & Exploited Children (NCMEC) as required.</p>
+
+<h2>7. Account Termination</h2>
+<p>Any user found to be in violation of this policy will have their account permanently terminated immediately. We reserve the right to report such users to the appropriate law enforcement authorities.</p>
+
+<h2>8. Contact</h2>
+<p>For questions about this policy or to report a concern, contact us at:<br>
+<a href="mailto:econetvision@gmail.com">econetvision@gmail.com</a></p>
+
+<hr>
+<p style="color:#6b7280;font-size:0.85rem;">© 2026 Karuneegar Central. All rights reserved.</p>
+</body>
+</html>"""
+    response = make_response(html, 200)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return response
+
+
 @app.route('/delete-account', methods=['GET', 'POST'])
 def delete_account_request():
     from flask import make_response
