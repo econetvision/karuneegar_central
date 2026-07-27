@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Phone } from 'lucide-react';
 import { LogoIcon } from './KarunegarLogo';
 
 export default function Footer() {
@@ -50,6 +51,16 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
+            <div className="mt-6">
+              <h4 className="font-semibold text-white mb-2">Need Help?</h4>
+              <p className="text-xs text-gray-400 mb-2">For onboarding support, call us:</p>
+              <a
+                href="tel:+919790840313"
+                className="inline-flex items-center gap-2 bg-saffron-600 hover:bg-saffron-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+              >
+                <Phone size={14} /> +91 97908 40313
+              </a>
+            </div>
           </div>
         </div>
 
