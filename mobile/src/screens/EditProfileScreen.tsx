@@ -39,6 +39,7 @@ export default function EditProfileScreen({ navigation }: any) {
         bio: p.bio || '',
         location: p.location || '',
         occupation: p.occupation || '',
+        occupation_title: p.occupation_title || '',
         dob: p.dob || '',
         native_place: p.native_place || '',
         gothram: p.gothram || '',
@@ -130,7 +131,8 @@ export default function EditProfileScreen({ navigation }: any) {
   const FIELDS: [string, string, boolean?][] = [
     ['Full Name', 'full_name'],
     ['Location / City', 'location'],
-    ['Occupation', 'occupation'],
+    ['Occupation / Job Title', 'occupation_title'],
+    ['Occupation Type', 'occupation'],
     ['Date of Birth (YYYY-MM-DD)', 'dob'],
     ['Native Place', 'native_place'],
     ['Gothram', 'gothram'],

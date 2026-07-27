@@ -16,6 +16,7 @@ interface ProfileData {
   phone?: string;
   location?: string;
   occupation?: string;
+  occupation_title?: string;
   dob?: string;
   native_place?: string;
   gothram?: string;
@@ -210,7 +211,9 @@ export default function Profile() {
             {/* Info chips */}
             <div className="flex flex-wrap gap-2">
               {profile?.location && <InfoChip icon={<MapPin size={14} />} text={profile.location} />}
-              {profile?.occupation && <InfoChip icon={<Briefcase size={14} />} text={profile.occupation} />}
+              {profile?.occupation_title
+                ? <InfoChip icon={<Briefcase size={14} />} text={`${profile.occupation_title}${profile.occupation ? ` · ${profile.occupation}` : ''}`} />
+                : profile?.occupation && <InfoChip icon={<Briefcase size={14} />} text={profile.occupation} />}
               {profile?.dob && <InfoChip icon={<Calendar size={14} />} text={profile.dob} />}
               {profile?.phone && isOwn && <InfoChip icon={<Phone size={14} />} text={profile.phone} />}
             </div>

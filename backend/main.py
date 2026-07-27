@@ -120,6 +120,7 @@ def create_app():
             _migrate_matrimony_columns()
             _migrate_business_ad_columns()
             _migrate_event_columns()
+            _migrate_profile_occupation_title()
             _seed_admin()
             _seed_generic_admin()
         except Exception as e:
@@ -276,6 +277,17 @@ def _migrate_otp_code_length():
         except Exception as exc:
             conn.rollback()
             _logger.warning('_migrate_otp_code_length skipped (already TEXT or SQLite): %s', exc)
+
+
+def _migrate_profile_occupation_title():
+    """Idempotently add occupation_title column to profile table."""
+    from sqlalchemy import text
+    with db.engine.connect() as conn:
+        try:
+            conn.execute(text('ALTER TABLE profile ADD COLUMN occupation_title VARCHAR(200)'))
+            conn.commit()
+        except Exception:
+            conn.rollback()
 
 
 def allowed_file(filename):
@@ -619,7 +631,7 @@ def update_profile():
         user.profile = Profile(user_id=user.id)
         db.session.add(user.profile)
 
-    fields = ['full_name', 'bio', 'phone', 'location', 'occupation', 'dob',
+    fields = ['full_name', 'bio', 'phone', 'location', 'occupation', 'occupation_title', 'dob',
               'native_place', 'gothram', 'photo_filename', 'linkedin', 'website',
               'is_public', 'achievements', 'is_prominent']
     for f in fields:
@@ -754,7 +766,8 @@ def get_members():
             Profile.full_name.ilike(f'%{search}%') |
             User.username.ilike(f'%{search}%') |
             Profile.native_place.ilike(f'%{search}%') |
-            Profile.occupation.ilike(f'%{search}%')
+            Profile.occupation.ilike(f'%{search}%') |
+            Profile.occupation_title.ilike(f'%{search}%')
         )
     pagination = query.paginate(page=page, per_page=20, error_out=False)
     members = [{**u.to_dict(), 'profile': u.profile.to_dict()} for u in pagination.items]

@@ -11,7 +11,7 @@ export default function EditProfile() {
   const { t } = useTranslation();
   const [form, setForm] = useState({
     full_name: '', bio: '', phone: '', location: '',
-    occupation: '', dob: '', native_place: '', gothram: '',
+    occupation: '', occupation_title: '', dob: '', native_place: '', gothram: '',
     linkedin: '', website: '', achievements: '',
   });
   const [isPublic, setIsPublic] = useState<boolean | null>(null);
@@ -43,6 +43,7 @@ export default function EditProfile() {
         phone: p.phone || '',
         location: p.location || '',
         occupation: p.occupation || '',
+        occupation_title: p.occupation_title || '',
         dob: p.dob || '',
         native_place: p.native_place || '',
         gothram: p.gothram || '',
@@ -193,6 +194,10 @@ export default function EditProfile() {
                 <option value="Public">{t('editProfile.public')}</option>
                 <option value="Private">{t('editProfile.private')}</option>
               </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Occupation / Job Title</label>
+              <input type="text" className="input" placeholder="e.g. Software Engineer, Doctor, Teacher…" value={form.occupation_title} onChange={set('occupation_title')} />
             </div>
           </div>
           <div>

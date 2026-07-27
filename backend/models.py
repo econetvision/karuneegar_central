@@ -65,6 +65,7 @@ class Profile(db.Model):
     phone = db.Column(db.String(20))
     location = db.Column(db.String(150))
     occupation = db.Column(db.String(150))
+    occupation_title = db.Column(db.String(200))
     dob = db.Column(db.String(20))
     native_place = db.Column(db.String(150))
     gothram = db.Column(db.String(100))
@@ -84,6 +85,7 @@ class Profile(db.Model):
             'phone': self.phone,
             'location': self.location,
             'occupation': self.occupation,
+            'occupation_title': self.occupation_title,
             'dob': self.dob,
             'native_place': self.native_place,
             'gothram': self.gothram,

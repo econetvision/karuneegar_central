@@ -41,7 +41,7 @@ export default function ProfileScreen({ navigation, route }: any) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'] as ImagePicker.MediaTypeOptions[],
+      mediaTypes: ['images'] as any,
       quality: 0.8,
       allowsEditing: true,
       aspect: [1, 1],
@@ -122,7 +122,9 @@ export default function ProfileScreen({ navigation, route }: any) {
 
       <View style={styles.chips}>
         {profile?.location && <Chip icon="location-outline" text={profile.location} />}
-        {profile?.occupation && <Chip icon="briefcase-outline" text={profile.occupation} />}
+        {profile?.occupation_title
+          ? <Chip icon="briefcase-outline" text={profile.occupation ? `${profile.occupation_title} · ${profile.occupation}` : profile.occupation_title} />
+          : profile?.occupation && <Chip icon="briefcase-outline" text={profile.occupation} />}
         {profile?.dob && <Chip icon="calendar-outline" text={profile.dob} />}
         {profile?.native_place && <Chip icon="home-outline" text={profile.native_place} />}
       </View>
