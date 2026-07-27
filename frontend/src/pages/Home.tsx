@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, GitBranch, MessageSquare, Heart, ArrowRight, Star, MapPin, Calendar, ChevronLeft, ChevronRight, Megaphone } from 'lucide-react';
+import { Users, GitBranch, MessageSquare, Heart, ArrowRight, Star, MapPin, Calendar, ChevronLeft, ChevronRight, Megaphone, Building2, GraduationCap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Stats {
   members: number;
@@ -13,6 +14,7 @@ interface Stats {
 
 export default function Home() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [stats, setStats] = useState<Stats>({ members: 0, families: 0, forum_threads: 0, matrimony_profiles: 0 });
   const [homeEvents, setHomeEvents] = useState<any[]>([]);
   const [carouselIdx, setCarouselIdx] = useState(0);
@@ -109,23 +111,54 @@ export default function Home() {
             Karuneegar <br className="hidden md:block" />
             <span className="text-yellow-300">Central</span>
           </h1>
-          <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
-            {t('home.subtitle')}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center gap-2 bg-white text-saffron-700 font-semibold px-7 py-3.5 rounded-xl hover:bg-yellow-50 transition-colors shadow-lg"
-            >
-              {t('home.joinCommunity')} <ArrowRight size={18} />
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center gap-2 bg-white/15 border border-white/30 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/25 transition-colors"
-            >
-              Already a Member? Sign In
-            </Link>
-          </div>
+          {user ? (
+            <>
+              <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-8 leading-relaxed font-semibold">
+                Welcome back, {user.username}! 👋
+              </p>
+              <p className="text-base text-white/70 max-w-xl mx-auto mb-10">
+                Explore what's happening in the community today.
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center">
+                {[
+                  { to: '/members', icon: <Users size={16} />, label: 'Browse Members' },
+                  { to: '/events', icon: <Calendar size={16} />, label: 'View Events' },
+                  { to: '/forums', icon: <MessageSquare size={16} />, label: 'Join Forums' },
+                  { to: '/businesses', icon: <Building2 size={16} />, label: 'Business Directory' },
+                  { to: '/family-tree', icon: <GitBranch size={16} />, label: 'Family Tree' },
+                  { to: '/scholarship', icon: <GraduationCap size={16} />, label: 'Scholarship' },
+                ].map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="inline-flex items-center gap-2 bg-white/15 border border-white/30 text-white font-medium px-5 py-2.5 rounded-xl hover:bg-white/25 transition-colors text-sm"
+                  >
+                    {item.icon} {item.label}
+                  </Link>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
+                {t('home.subtitle')}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-saffron-700 font-semibold px-7 py-3.5 rounded-xl hover:bg-yellow-50 transition-colors shadow-lg"
+                >
+                  {t('home.joinCommunity')} <ArrowRight size={18} />
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center gap-2 bg-white/15 border border-white/30 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-white/25 transition-colors"
+                >
+                  Already a Member? Sign In
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -355,26 +388,57 @@ export default function Home() {
       {/* CTA */}
       <section className="bg-gradient-to-r from-saffron-600 to-orange-700 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-center">
-          <h2 className="font-display font-bold text-3xl md:text-4xl mb-4">
-            {t('home.ctaTitle')}
-          </h2>
-          <p className="text-white/80 text-lg mb-8">
-            {t('home.ctaDesc')}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 bg-white text-saffron-700 font-semibold px-8 py-3.5 rounded-xl hover:bg-yellow-50 transition-colors shadow-lg"
-            >
-              {t('home.getStarted')} <ArrowRight size={18} />
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 bg-white/15 border border-white/30 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-white/25 transition-colors"
-            >
-              Already a Member? Sign In
-            </Link>
-          </div>
+          {user ? (
+            <>
+              <h2 className="font-display font-bold text-3xl md:text-4xl mb-4">
+                Welcome to Karuneegar Central 🙏
+              </h2>
+              <p className="text-white/80 text-lg mb-8">
+                You're part of the community. Here's what you can explore next.
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center">
+                {[
+                  { to: '/businesses', icon: <Building2 size={16} />, label: 'Create Business Profile' },
+                  { to: '/family-tree', icon: <GitBranch size={16} />, label: 'Build Family Tree' },
+                  { to: '/forums', icon: <MessageSquare size={16} />, label: 'Start a Discussion' },
+                  { to: '/matrimony', icon: <Heart size={16} />, label: 'Matrimony Profiles' },
+                  { to: '/scholarship', icon: <GraduationCap size={16} />, label: 'Apply for Scholarship' },
+                  { to: '/pilgrimages', icon: <MapPin size={16} />, label: 'Explore Pilgrimages' },
+                ].map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="inline-flex items-center gap-2 bg-white text-saffron-700 font-semibold px-5 py-2.5 rounded-xl hover:bg-yellow-50 transition-colors shadow text-sm"
+                  >
+                    {item.icon} {item.label}
+                  </Link>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="font-display font-bold text-3xl md:text-4xl mb-4">
+                {t('home.ctaTitle')}
+              </h2>
+              <p className="text-white/80 text-lg mb-8">
+                {t('home.ctaDesc')}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 bg-white text-saffron-700 font-semibold px-8 py-3.5 rounded-xl hover:bg-yellow-50 transition-colors shadow-lg"
+                >
+                  {t('home.getStarted')} <ArrowRight size={18} />
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 bg-white/15 border border-white/30 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-white/25 transition-colors"
+                >
+                  Already a Member? Sign In
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </section>
     </div>
