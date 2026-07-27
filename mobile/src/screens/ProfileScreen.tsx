@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,6 +19,8 @@ export default function ProfileScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [langModal, setLangModal] = useState(false);
   const [currentLang, setCurrentLang] = useState(i18n.language);
+  const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   useEffect(() => {
     const req = isOwn ? api.get('/profile') : api.get(`/users/${username}`);
@@ -29,6 +32,34 @@ export default function ProfileScreen({ navigation, route }: any) {
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('profile.signOut'), style: 'destructive', onPress: logout },
     ]);
+  };
+
+  const handlePhotoEdit = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photo library to change your profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'] as ImagePicker.MediaTypeOptions[],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    setPhotoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', { uri: asset.uri, name: asset.fileName || 'photo.jpg', type: asset.mimeType || 'image/jpeg' } as any);
+      const r = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.put('/profile', { photo_filename: r.data.filename });
+      setLocalPhotoUri(asset.uri);
+    } catch {
+      Alert.alert('Error', 'Failed to update profile photo.');
+    } finally {
+      setPhotoUploading(false);
+    }
   };
 
   const handleLanguageChange = async (code: string) => {
@@ -58,9 +89,18 @@ export default function ProfileScreen({ navigation, route }: any) {
     <ScrollView style={styles.scroll}>
       <View style={styles.cover} />
       <View style={styles.avatarWrap}>
-        {photoUrl
-          ? <Image source={{ uri: photoUrl }} style={styles.avatar} />
-          : <View style={[styles.avatar, styles.avatarPlaceholder]}><Text style={styles.avatarInitial}>{displayName[0]?.toUpperCase()}</Text></View>}
+        <View>
+          {(localPhotoUri || photoUrl)
+            ? <Image source={{ uri: localPhotoUri ?? photoUrl! }} style={styles.avatar} />
+            : <View style={[styles.avatar, styles.avatarPlaceholder]}><Text style={styles.avatarInitial}>{displayName[0]?.toUpperCase()}</Text></View>}
+          {isOwn && !localPhotoUri && !photoUrl && (
+            <TouchableOpacity style={styles.photoEditBtn} onPress={handlePhotoEdit} disabled={photoUploading}>
+              {photoUploading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="camera" size={14} color="#fff" />}
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {isOwn && (
@@ -192,6 +232,7 @@ const styles = StyleSheet.create({
   cover: { height: 120, backgroundColor: colors.primary },
   avatarWrap: { marginTop: -40, marginLeft: spacing.lg },
   avatar: { width: 80, height: 80, borderRadius: 16, borderWidth: 3, borderColor: '#fff' },
+  photoEditBtn: { position: 'absolute', bottom: -4, right: -4, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
   avatarPlaceholder: { backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { fontSize: 30, fontWeight: '700', color: colors.primary },
   editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, position: 'absolute', top: 130, right: spacing.lg, borderWidth: 1.5, borderColor: colors.primary, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 6 },

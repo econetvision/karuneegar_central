@@ -7,6 +7,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
+import ProtectedPhoto from '../components/ProtectedPhoto';
 
 interface Member {
   id: number;
@@ -193,7 +194,7 @@ export default function Members() {
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-saffron-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                               {photo
-                                ? <img src={photo} alt={name} className="w-full h-full object-cover" />
+                                ? <ProtectedPhoto src={photo} alt={name} className="w-full h-full object-cover" />
                                 : <User size={16} className="text-saffron-500" />}
                             </div>
                             <div>
@@ -268,7 +269,7 @@ export default function Members() {
               >
                 <div className="w-20 h-20 rounded-2xl bg-amber-50 border border-amber-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
                   {m.profile?.photo_filename
-                    ? <img src={uploadUrl(m.profile.photo_filename)} alt={m.profile.full_name || m.username} className="w-full h-full object-cover" />
+                    ? <ProtectedPhoto src={uploadUrl(m.profile.photo_filename)} alt={m.profile.full_name || m.username} className="w-full h-full object-cover" />
                     : <User size={28} className="text-amber-400" />}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -310,7 +311,7 @@ export default function Members() {
             <Link key={m.id} to={`/u/${m.username}`} className="card p-5 group text-center">
               <div className="w-16 h-16 rounded-2xl bg-saffron-100 mx-auto mb-3 flex items-center justify-center overflow-hidden relative">
                 {m.profile?.photo_filename
-                  ? <img src={uploadUrl(m.profile.photo_filename)} alt={m.profile.full_name || m.username} className="w-full h-full object-cover" />
+                  ? <ProtectedPhoto src={uploadUrl(m.profile.photo_filename)} alt={m.profile.full_name || m.username} className="w-full h-full object-cover" />
                   : <User size={26} className="text-saffron-400" />}
                 {m.profile?.is_prominent && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center">

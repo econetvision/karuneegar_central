@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   MapPin, Briefcase, Calendar, Phone, ExternalLink,
-  Edit2, User, Building2, PlusCircle, ArrowRight, Globe, Lock,
+  Edit2, User, Building2, PlusCircle, ArrowRight, Globe, Lock, Camera,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import VisibilityPrompt from '../components/VisibilityPrompt';
+import ProtectedPhoto from '../components/ProtectedPhoto';
 
 interface ProfileData {
   full_name?: string;
@@ -53,9 +54,31 @@ export default function Profile() {
   const [business, setBusiness] = useState<BusinessData | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const isOwn = !username || username === authUser?.username;
   const resolvedUsername = username || authUser?.username;
+
+  const handleQuickPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const r = await api.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const filename = r.data.filename;
+      await api.put('/profile', { photo_filename: filename });
+      setLocalPhotoUrl(uploadUrl(filename));
+    } catch {
+      // silently fail — full edit page has proper error feedback
+    } finally {
+      setPhotoUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     const req = isOwn ? api.get('/profile') : api.get(`/users/${username}`);
@@ -126,14 +149,30 @@ export default function Profile() {
             )}
 
             {/* Row 1: Avatar only — overlaps cover */}
-            <div className="-mt-12 mb-4 inline-block">
+            <div className="-mt-12 mb-4 inline-block relative">
               <div className="w-24 h-24 rounded-2xl border-4 border-white shadow-md bg-saffron-100 flex items-center justify-center overflow-hidden">
-                {photoUrl ? (
-                  <img src={photoUrl} alt={displayName} className="w-full h-full object-cover" />
+                {(localPhotoUrl || photoUrl) ? (
+                  <ProtectedPhoto src={localPhotoUrl ?? photoUrl!} alt={displayName} className="w-full h-full object-cover" />
                 ) : (
                   <User size={36} className="text-saffron-400" />
                 )}
               </div>
+              {/* Only show add-photo button when no photo exists yet */}
+              {isOwn && !localPhotoUrl && !photoUrl && (
+                <>
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={photoUploading}
+                    title="Add profile photo"
+                    className="absolute -bottom-1 -right-1 w-8 h-8 bg-saffron-600 rounded-full flex items-center justify-center shadow-md hover:bg-saffron-700 transition-colors disabled:opacity-60"
+                  >
+                    {photoUploading
+                      ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      : <Camera size={14} className="text-white" />}
+                  </button>
+                  <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handleQuickPhotoUpload} />
+                </>
+              )}
             </div>
 
             {/* Row 2: Name + username — full width, no crowding */}

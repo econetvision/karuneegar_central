@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Switch } from 'react-native';
-import api from '../api/client';
+import { View, Text, Image, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Switch } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import api, { uploadUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 
@@ -13,6 +15,8 @@ export default function EditProfileScreen({ navigation }: any) {
   const [currentMobile, setCurrentMobile] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [photoFilename, setPhotoFilename] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // Mobile change
   const [showMobileChange, setShowMobileChange] = useState(false);
@@ -29,6 +33,7 @@ export default function EditProfileScreen({ navigation }: any) {
       const p = r.data.profile || {};
       const u = r.data.user || {};
       setCurrentMobile(u.mobile || '');
+      setPhotoFilename(p.photo_filename || '');
       setForm({
         full_name: p.full_name || '',
         bio: p.bio || '',
@@ -80,10 +85,37 @@ export default function EditProfileScreen({ navigation }: any) {
     }
   };
 
+  const handlePhotoUpload = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'] as any,
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', { uri: asset.uri, name: asset.fileName || 'photo.jpg', type: asset.mimeType || 'image/jpeg' } as any);
+      const r = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setPhotoFilename(r.data.filename);
+    } catch {
+      Alert.alert('Error', 'Failed to upload photo.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put('/profile', { ...form, mobile_public: mobilePublic });
+      await api.put('/profile', { ...form, mobile_public: mobilePublic, photo_filename: photoFilename });
       await refreshUser();
       Alert.alert('Saved', 'Profile updated successfully.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
     } catch {
@@ -109,6 +141,21 @@ export default function EditProfileScreen({ navigation }: any) {
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.body}>
+        {/* Photo */}
+        <View style={styles.photoSection}>
+          <View style={styles.photoPreview}>
+            {photoFilename
+              ? <Image source={{ uri: uploadUrl(photoFilename) }} style={styles.photoImg} />
+              : <Ionicons name="person" size={36} color={colors.primary} />}
+          </View>
+          <TouchableOpacity style={[styles.photoBtn, uploading && { opacity: 0.6 }]} onPress={handlePhotoUpload} disabled={uploading}>
+            {uploading
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Ionicons name="camera-outline" size={16} color="#fff" />}
+            <Text style={styles.photoBtnText}>{uploading ? 'Uploading…' : 'Change Photo'}</Text>
+          </TouchableOpacity>
+        </View>
+
         {FIELDS.map(([label, key]) => (
           <View key={key}>
             <Text style={styles.label}>{label}</Text>
@@ -213,14 +260,33 @@ export default function EditProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  body: { padding: spacing.lg, gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4, marginTop: 8 },
-  input: { borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: 10, fontSize: 14, color: colors.text },
-  switchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, padding: spacing.md, marginTop: 8, gap: 12 },
-  switchInfo: { flex: 1 },
-  switchLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
-  switchDesc: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  saveBtn: { backgroundColor: colors.primary, borderRadius: radius.md, padding: 14, alignItems: 'center', marginTop: spacing.md },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  container:         { flex: 1, backgroundColor: colors.background },
+  body:              { padding: spacing.lg, gap: 8 },
+  label:             { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 4, marginTop: 8 },
+  input:             { borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: 10, fontSize: 14, color: colors.text },
+  switchRow:         { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, padding: spacing.md, marginTop: 8, gap: 12 },
+  switchInfo:        { flex: 1 },
+  switchLabel:       { fontSize: 14, fontWeight: '600', color: colors.text },
+  switchDesc:        { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  saveBtn:           { backgroundColor: colors.primary, borderRadius: radius.md, padding: 14, alignItems: 'center', marginTop: spacing.md },
+  saveBtnText:       { color: '#fff', fontWeight: '700', fontSize: 16 },
+  // Photo section
+  photoSection:      { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.md, marginBottom: 4 },
+  photoPreview:      { width: 72, height: 72, borderRadius: 14, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  photoImg:          { width: 72, height: 72 },
+  photoBtn:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: radius.md, padding: 12 },
+  photoBtnText:      { color: '#fff', fontWeight: '600', fontSize: 14 },
+  // Mobile number card
+  mobileCard:        { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.md, marginTop: 8, gap: 8 },
+  mobileCardHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  mobileCardTitle:   { fontSize: 14, fontWeight: '600', color: colors.text },
+  mobileCardCurrent: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  changeLink:        { fontSize: 13, color: colors.primary, fontWeight: '600' },
+  hint:              { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  mobileActions:     { flexDirection: 'row', gap: 10, marginTop: 4 },
+  primaryBtn:        { flex: 1, backgroundColor: colors.primary, borderRadius: radius.md, padding: 12, alignItems: 'center' },
+  primaryBtnText:    { color: '#fff', fontWeight: '700', fontSize: 14 },
+  cancelBtn:         { flex: 1, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: 12, alignItems: 'center' },
+  cancelBtnText:     { color: colors.text, fontWeight: '600', fontSize: 14 },
+  otpInput:          { textAlign: 'center', fontSize: 22, letterSpacing: 8 },
 });
