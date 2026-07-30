@@ -121,6 +121,7 @@ def create_app():
             _migrate_business_ad_columns()
             _migrate_event_columns()
             _migrate_profile_occupation_title()
+            _migrate_user_email_nullable()
             _seed_admin()
             _seed_generic_admin()
         except Exception as e:
@@ -290,6 +291,21 @@ def _migrate_profile_occupation_title():
             conn.rollback()
 
 
+def _migrate_user_email_nullable():
+    """Make user.email nullable so members without email can register."""
+    import logging as _log
+    from sqlalchemy import text
+    _logger = _log.getLogger(__name__)
+    with db.engine.connect() as conn:
+        try:
+            conn.execute(text('ALTER TABLE "user" ALTER COLUMN email DROP NOT NULL'))
+            conn.commit()
+            _logger.info('_migrate_user_email_nullable: email column is now nullable')
+        except Exception as exc:
+            conn.rollback()
+            _logger.warning('_migrate_user_email_nullable skipped: %s', exc)
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -309,8 +325,8 @@ def register():
     mobile   = _normalize_mobile(data.get('mobile') or '')
     otp_code = (data.get('otp_code') or '').strip()
 
-    if not username or not email or not password or not mobile or not otp_code:
-        return jsonify({'error': 'All fields including mobile OTP are required'}), 400
+    if not username or not password or not mobile or not otp_code:
+        return jsonify({'error': 'Username, password, mobile, and OTP are required'}), 400
     if not _USERNAME_RE.match(username):
         return jsonify({'error': 'Username must be 3–30 characters: lowercase letters, numbers, and underscore only'}), 400
     if len(password) < 6:
@@ -319,7 +335,7 @@ def register():
         return jsonify({'error': 'Invalid mobile number'}), 400
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'Username already taken'}), 409
-    if User.query.filter_by(email=email).first():
+    if email and User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already registered'}), 409
     if User.query.filter_by(mobile=mobile).first():
         return jsonify({'error': 'This mobile number already has an account'}), 409
@@ -334,7 +350,7 @@ def register():
 
     otp_req.used = True
     mobile_public = bool(data.get('mobile_public', False))
-    user = User(username=username, email=email, mobile=mobile, mobile_verified=True, mobile_public=mobile_public)
+    user = User(username=username, email=email or None, mobile=mobile, mobile_verified=True, mobile_public=mobile_public)
     user.set_password(password)
     db.session.add(user)
     db.session.flush()  # populates user.id

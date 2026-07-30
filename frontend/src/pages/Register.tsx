@@ -151,9 +151,12 @@ export default function Register() {
               <p className="mt-1 text-xs text-gray-400">{t('auth.usernameHint')}</p>
             </div>
             <div>
-              <label className="label">{t('auth.email')}</label>
+              <label className="label">
+                {t('auth.email')}
+                <span className="ml-1.5 text-xs font-normal text-gray-400">(Optional)</span>
+              </label>
               <input type="email" className="input" placeholder={t('auth.emailFieldPlaceholder')}
-                value={form.email} onChange={set('email')} required />
+                value={form.email} onChange={set('email')} />
             </div>
             <div>
               <label className="label">{t('auth.password')}</label>
